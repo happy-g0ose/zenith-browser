@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith - Advanced Preferences (about:config)</title>
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --card-bg: #161b22;
+      --card-border: rgba(255, 255, 255, 0.06);
+      --text: #c9d1d9;
+      --text-muted: #6e7681;
+      --accent: #5b8def;
+      --success: #3ecf8e;
+      --warning: #d29922;
+      --danger: #f85149;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius-card: 6px;
+      --radius-input: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .title-group p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-input);
+      padding: 8px 16px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--accent);
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+    }
+
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    thead th {
+      background: var(--bg);
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 10px 16px;
+      vertical-align: middle;
+    }
+
+    .pref-key {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .pref-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .badge-privacy { color: var(--success); border: 1px solid var(--success); }
+    .badge-stealth { color: var(--accent); border: 1px solid var(--accent); }
+    .badge-ui { color: var(--danger); border: 1px solid var(--danger); }
+    .badge-network { color: var(--warning); border: 1px solid var(--warning); }
+
+    .pref-type {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .pref-value {
+      font-family: var(--font-mono);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: var(--bg);
+      border: 1px solid var(--card-border);
+      transition: .2s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--text-muted);
+      transition: .2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      background-color: #fff;
+      transform: translateX(16px);
+    }
+
+    .input-edit {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-input);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      outline: none;
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .input-edit:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      border-radius: var(--radius-input);
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .btn-reset:hover {
+      background: var(--card-border);
+    .lang-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 14px 18px;
+    }
+
+    .lang-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .lang-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lang-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .lang-select {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-input);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      padding: 6px 12px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .lang-select:focus {
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-bar">
+      <div class="title-group">
+        <h1 id="page-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings & Preferences (about:config)
+        </h1>
+        <p id="page-subtitle">Configure privacy shields, language, stealth noise, and network sandboxing.</p>
+      </div>
+      <div class="search-box">
+        <input type="text" class="search-input" id="search-prefs" placeholder="Search preference names or values..." autofocus autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Quick Language Selector -->
+    <div class="lang-bar">
+      <div class="lang-info">
+        <div class="lang-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span id="label-lang-title">Browser Language & Locale</span>
+        </div>
+        <span class="lang-desc" id="label-lang-desc">Sets interface language and client navigator.languages headers</span>
+      </div>
+      <select class="lang-select" id="quick-lang-select">
+        <option value="ru">Русский (Russian)</option>
+        <option value="en">English (US)</option>
+        <option value="de">Deutsch (German)</option>
+        <option value="fr">Français (French)</option>
+        <option value="es">Español (Spanish)</option>
+        <option value="zh">中文 (Chinese)</option>
+      </select>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th id="th-name" style="width: 48%;">Параметр и описание</th>
+            <th id="th-type" style="width: 14%;">Тип</th>
+            <th id="th-value" style="width: 28%;">Значение</th>
+            <th id="th-action" style="width: 10%; text-align: right;">Действие</th>
+          </tr>
+        </thead>
+        <tbody id="prefs-tbody">
+          <tr>
+            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              Loading preferences...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+</body>
+</html>

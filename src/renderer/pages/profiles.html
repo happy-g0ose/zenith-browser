@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith - Anti-Detect Profiles Manager</title>
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --card-bg: #161b22;
+      --card-border: rgba(255, 255, 255, 0.06);
+      --text: #c9d1d9;
+      --text-muted: #6e7681;
+      --accent: #5b8def;
+      --success: #3ecf8e;
+      --danger: #f85149;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+      --radius-card: 6px;
+      --radius-input: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+    }
+
+    .title-group h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .title-group p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .actions-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-input);
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--card-border);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+
+    .profiles-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .profile-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .profile-card:hover {
+      border-color: var(--accent);
+    }
+
+    .profile-card.active-selected {
+      border-color: var(--accent);
+      background: rgba(91, 141, 239, 0.1);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .profile-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    .color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .badge-current {
+      font-size: 0.68rem;
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 2px 6px;
+      border-radius: var(--radius-input);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .profile-specs {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* Editor Form */
+    .editor-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input, select, textarea {
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-input);
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 0.88rem;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .mono-input {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .form-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--card-border);
+      padding-top: 16px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-bar">
+      <div class="title-group">
+        <h1>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Anti-Detect Identity Manager
+        </h1>
+        <p>Isolate sessions, generate authentic hardware fingerprints, spoof GPUs, and route traffic through proxies.</p>
+      </div>
+      <div class="actions-group">
+        <button class="btn btn-secondary" onclick="generateRandomProfile()">Quick Random Identity</button>
+        <button class="btn" onclick="createNewProfile()">New Profile</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- Profiles List -->
+      <div class="profiles-list" id="profiles-list-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Profile Form Editor -->
+      <div class="editor-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 1.15rem; font-weight: 600; color: #fff;" id="editor-title">Edit Identity Profile</h2>
+          <button class="btn btn-secondary" id="btn-activate-profile" onclick="activateCurrentProfile()">Switch to this Profile</button>
+        </div>
+
+        <form id="profile-form" onsubmit="saveProfile(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Profile Name</label>
+              <input type="text" id="p-name" required>
+            </div>
+            <div class="form-group">
+              <label>Noise Seed (Canvas & Audio Hash)</label>
+              <input type="number" id="p-seed" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label>User-Agent String</label>
+              <input type="text" id="p-ua" class="mono-input" required>
+            </div>
+
+            <div class="form-group">
+              <label>Platform / OS</label>
+              <select id="p-platform">
+                <option value="Win32">Windows (Win32)</option>
+                <option value="MacIntel">macOS (MacIntel)</option>
+                <option value="Linux x86_64">Linux (x86_64)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>CPU Cores & RAM</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="p-cores" placeholder="Cores" min="2" max="64" style="width: 50%;">
+                <input type="number" id="p-ram" placeholder="RAM GB" min="2" max="128" style="width: 50%;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>WebGL GPU Vendor</label>
+              <input type="text" id="p-vendor" required>
+            </div>
+
+            <div class="form-group">
+              <label>WebGL GPU Renderer</label>
+              <input type="text" id="p-renderer" required>
+            </div>
+
+            <div class="form-group">
+              <label>Screen Resolution (W x H x DPR)</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="p-screen-w" placeholder="Width" style="width: 35%;">
+                <input type="number" id="p-screen-h" placeholder="Height" style="width: 35%;">
+                <input type="number" id="p-screen-dpr" placeholder="DPR" step="0.5" style="width: 30%;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>WebRTC Leak Mode</label>
+              <select id="p-webrtc">
+                <option value="disable_non_proxied_udp">Disable Non-Proxied UDP (Protected)</option>
+                <option value="disable_all">Disable WebRTC Completely</option>
+                <option value="default">Default / Unrestricted</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Spoofed Language & Locales</label>
+              <input type="text" id="p-languages" placeholder="en-US,en or ru-RU,ru" class="mono-input">
+            </div>
+
+            <div class="form-group full-width">
+              <label>Proxy Configuration (HTTP / SOCKS5)</label>
+              <div style="display: grid; grid-template-columns: 120px 1fr; gap: 8px;">
+                <select id="p-proxy-type">
+                  <option value="direct">Direct (No Proxy)</option>
+                  <option value="socks5">SOCKS5</option>
+                  <option value="http">HTTP</option>
+                  <option value="https">HTTPS</option>
+                </select>
+                <input type="text" id="p-proxy-server" placeholder="host:port (e.g. 127.0.0.1:9050 for Tor)" class="mono-input">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-footer">
+            <button type="button" class="btn btn-secondary" style="color: var(--danger); border-color: rgba(248, 81, 73, 0.3);" onclick="deleteCurrentProfile()">Delete Profile</button>
+            <button type="submit" class="btn">Save Identity Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="profiles.js"></script>
+</body>
+</html>

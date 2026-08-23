@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/themes.css">
+  <style id="zenith-userchrome-css"></style>
+</head>
+<body data-theme="stealth-dark">
+
+  <div class="browser-window">
+    <!-- Row 1: Tabstrip (Opera-style clean dark tab bar) -->
+    <header class="tabstrip-bar">
+      <div class="tabstrip-drag-region"></div>
+
+      <button class="logo-btn" id="logo-btn" title="Zenith Menu">
+        <svg viewBox="0 0 100 100" width="18" height="18" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+          <circle cx="50" cy="50" r="32" stroke-dasharray="88 20 88 20" stroke-dashoffset="15" />
+          <line x1="50" y1="18" x2="50" y2="10" />
+          <line x1="66" y1="22.3" x2="71" y2="15" />
+          <line x1="77.7" y1="34" x2="85" y2="30" />
+          <line x1="82" y1="50" x2="90" y2="50" />
+          <line x1="77.7" y1="66" x2="85" y2="70" />
+          <line x1="66" y1="77.7" x2="71" y2="85" />
+          <line x1="50" y1="82" x2="50" y2="90" />
+          <line x1="34" y1="77.7" x2="29" y2="85" />
+          <line x1="22.3" y1="66" x2="15" y2="70" />
+          <line x1="18" y1="50" x2="10" y2="50" />
+          <line x1="22.3" y1="34" x2="15" y2="30" />
+          <line x1="34" y1="22.3" x2="29" y2="15" />
+          <line x1="15" y1="85" x2="85" y2="15" stroke-width="7" />
+        </svg>
+      </button>
+
+      <div class="tabs-container-top" id="tabs-container-top">
+        <div class="tab-list" id="tab-list-top"></div>
+        <button class="btn-new-tab" id="btn-new-tab-top" title="New Tab (Ctrl+T)">
+          <svg viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+      </div>
+
+      <div class="window-controls">
+        <button class="win-btn" id="win-min" title="Minimize">
+          <svg width="10" height="1" viewBox="0 0 10 1"><line x1="0" y1="0.5" x2="10" y2="0.5" stroke="currentColor" stroke-width="1"/></svg>
+        </button>
+        <button class="win-btn" id="win-max" title="Maximize">
+          <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" stroke="currentColor" fill="none" stroke-width="1"/></svg>
+        </button>
+        <button class="win-btn win-close" id="win-close" title="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Row 2: Navigation bar (Seamlessly connects to active tab) -->
+    <nav class="navigation-bar">
+      <div class="nav-buttons-group">
+        <button class="nav-btn" id="nav-back" title="Back">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="nav-btn" id="nav-forward" title="Forward">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="nav-btn" id="nav-reload" title="Reload">
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+
+      <div class="omnibox-wrapper">
+        <div class="security-badge" id="security-badge" title="Encrypted Connection">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <input type="text" class="url-input" id="url-input" placeholder="Поиск или ввод адреса..." autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="nav-buttons-group">
+        <!-- Incognito tab -->
+        <button class="nav-btn" id="btn-incognito" title="Инкогнито-вкладка (без следа)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8.5l8-2.5 8 2.5"/>
+            <path d="M4.5 8.5V13a7.5 3.5 0 0 0 15 0V8.5"/>
+            <path d="M9 12.5a1.5 1 0 0 0 3-.2M12 12.3a1.5 1 0 0 0 3 .2"/>
+          </svg>
+        </button>
+
+        <!-- Shield status popup trigger -->
+        <button class="nav-btn nav-btn-shield" id="btn-shield" title="Щит приватности и защита">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="shield-dot"></span>
+        </button>
+
+        <!-- Main settings & menu trigger -->
+        <button class="nav-btn" id="btn-main-menu" title="Настройки и меню">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Row 3: Bookmarks bar -->
+    <div class="bookmarks-bar" id="bookmarks-bar"></div>
+
+    <!-- Main Viewport -->
+    <div class="browser-body" id="browser-body">
+      <aside class="vertical-tabs-sidebar" id="vertical-tabs-sidebar">
+        <div class="sidebar-header">
+          <span>Вкладки</span>
+          <button class="btn-new-tab" id="btn-new-tab-vertical" title="Новая вкладка">
+            <svg viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+        <div class="tab-list" id="tab-list-vertical" style="flex-direction: column; width: 100%;"></div>
+      </aside>
+
+      <main class="web-viewport-container" id="web-viewport-container">
+        <div class="page-dimmer" id="page-dimmer"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Privacy Shield Popup Flyout -->
+  <div class="popup-panel" id="shield-popup">
+    <div class="popup-header">
+      <div class="popup-title-group">
+        <svg viewBox="0 0 24 24" width="16" height="16" class="icon-green"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span class="popup-title">Щит приватности</span>
+      </div>
+      <span class="badge-status">Активен</span>
+    </div>
+    <div class="popup-content">
+      <div class="popup-stat-row">
+        <span class="stat-label">Заблокировано трекеров и рекламы</span>
+        <span class="stat-value" id="shield-blocked-count">0</span>
+      </div>
+      <div class="popup-stat-row">
+        <span class="stat-label">Доступ к геолокации</span>
+        <span class="stat-value text-green">Заблокирован</span>
+      </div>
+      <div class="popup-stat-row">
+        <span class="stat-label">Шум Canvas & WebGL</span>
+        <span class="stat-value text-green">Активен</span>
+      </div>
+      <div class="popup-stat-row">
+        <span class="stat-label">Защита от утечек WebRTC</span>
+        <span class="stat-value text-green">Изолирован</span>
+      </div>
+      <div class="popup-stat-row">
+        <span class="stat-label">Tor</span>
+        <span class="stat-value" id="shield-tor-status">Проверка...</span>
+      </div>
+    </div>
+    <div class="popup-footer">
+      <button class="popup-btn" id="btn-start-tor">Запустить Tor (9050)</button>
+      <button class="popup-btn" id="btn-open-audit">Аудит отпечатков (Fingerprint Lab)</button>
+    </div>
+  </div>
+
+  <!-- Browser Main Menu Flyout -->
+  <div class="popup-panel" id="main-menu-popup">
+    <div class="menu-profile-card" id="menu-profile-card">
+      <div class="profile-info">
+        <span class="profile-dot-large" id="menu-profile-dot"></span>
+        <div class="profile-texts">
+          <span class="profile-label">Текущая личность</span>
+          <span class="profile-name" id="menu-profile-name">Default</span>
+        </div>
+      </div>
+      <button class="menu-sub-btn" id="btn-switch-profile" title="Управление личностями">Профили</button>
+    </div>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-items-list">
+      <button class="menu-item" id="menu-opt-profiles">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Профили цифровой личности</span>
+      </button>
+      <button class="menu-item" id="menu-opt-fingerprint">
+        <svg viewBox="0 0 24 24"><path d="M12 10a2 2 0 100 4 2 2 0 000-4z"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
+        <span>Аудит фингерпринта</span>
+      </button>
+      <button class="menu-item" id="menu-opt-config">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Настройки и конфигурация</span>
+      </button>
+      <button class="menu-item" id="menu-opt-customizer">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>Редактор userChrome.css</span>
+      </button>
+      <button class="menu-item" id="menu-opt-vertical-tabs">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="4" rx="1"/><rect x="14" y="17" width="7" height="4" rx="1"/></svg>
+        <span>Вертикальные вкладки</span>
+      </button>
+      <button class="menu-item" id="menu-opt-palette">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Командная палитра</span>
+        <span class="menu-shortcut">Ctrl+K</span>
+      </button>
+      <button class="menu-item" id="menu-opt-incognito">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5l8-2.5 8 2.5"/><path d="M4.5 8.5V13a7.5 3.5 0 0 0 15 0V8.5"/><path d="M9 12.5a1.5 1 0 0 0 3-.2M12 12.3a1.5 1 0 0 0 3 .2"/></svg>
+        <span>Инкогнито-вкладка (без следа)</span>
+        <span class="menu-shortcut">Ctrl+Shift+N</span>
+      </button>
+    </div>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-theme-row">
+      <span class="menu-subhead">Тема</span>
+      <div class="theme-bubbles">
+        <button class="theme-bubble" data-theme-val="stealth-dark" title="Stealth Dark" style="background: #0b0d11; border: 1px solid #5b8def;"></button>
+        <button class="theme-bubble" data-theme-val="oled-black" title="OLED Black" style="background: #000000; border: 1px solid #333;"></button>
+        <button class="theme-bubble" data-theme-val="nord" title="Nord" style="background: #242933; border: 1px solid #81a1c1;"></button>
+        <button class="theme-bubble" data-theme-val="tokyo-night" title="Tokyo Night" style="background: #1a1b26; border: 1px solid #7aa2f7;"></button>
+        <button class="theme-bubble" data-theme-val="gruvbox" title="Gruvbox" style="background: #1d2021; border: 1px solid #d79921;"></button>
+        <button class="theme-bubble" data-theme-val="paper-light" title="Paper Light" style="background: #f6f8fa; border: 1px solid #d0d7de;"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal -->
+  <div class="command-palette-overlay" id="command-palette">
+    <div class="command-palette-modal">
+      <div class="palette-input-wrapper">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="palette-input" id="palette-input" placeholder="Type a command..." autocomplete="off">
+      </div>
+      <div class="palette-results" id="palette-results"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "name": "zenith-browser",
+  "version": "1.0.0",
+  "description": "Minimalist, Ultra-Secure, Anti-Detect & Customizable Web Browser",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/stealth-test.js",
+    "build:icon": "electron scripts/build-icon.js",
+    "dist": "electron-builder --win portable",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.zenith.browser",
+    "productName": "Zenith",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "vendor/**/*",
+      "package.json"
+    ]
+  },
+  "keywords": [
+    "browser",
+    "anti-detect",
+    "privacy",
+    "minimalist",
+    "userchrome",
+    "security"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^26.0.12"
+  }
+}

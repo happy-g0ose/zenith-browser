@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ошибка загрузки</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0b0d11;
+      color: #c9d1d9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      max-width: 560px;
+      width: 90%;
+      background: #12141a;
+      border: 1px solid #1f2430;
+      border-radius: 12px;
+      padding: 40px 36px;
+      text-align: center;
+    }
+    .icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: rgba(224, 108, 117, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e06c75;
+    }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .url {
+      color: #8b949e;
+      font-size: 13px;
+      word-break: break-all;
+      margin-bottom: 16px;
+    }
+    .desc {
+      color: #6e7681;
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+    .actions { display: flex; gap: 10px; justify-content: center; }
+    button {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 9px 20px;
+      border-radius: 8px;
+      border: 1px solid #2d333b;
+      background: #1c2128;
+      color: #c9d1d9;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    button:hover { background: #232932; border-color: #5b8def; }
+    .hint {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #6e7681;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1>Страница не загрузилась</h1>
+    <p class="url" id="err-url"></p>
+    <p class="desc" id="err-desc"></p>
+    <div class="actions">
+      <button id="btn-retry">Повторить</button>
+      <button id="btn-newtab">Новая вкладка</button>
+    </div>
+    <p class="hint">Проверьте соединение, настройки прокси профиля или блокировщик</p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const failedUrl = params.get('url') || '';
+    const desc = params.get('desc') || 'Неизвестная ошибка сети';
+    const code = params.get('code') || '0';
+
+    document.getElementById('err-url').textContent = failedUrl;
+    document.getElementById('err-desc').textContent = 'Ошибка ' + code + ' — ' + desc;
+
+    document.getElementById('btn-retry').onclick = () => {
+      if (failedUrl && window.aegisAPI) window.aegisAPI.navigateCurrent(failedUrl);
+    };
+    document.getElementById('btn-newtab').onclick = () => {
+      if (window.aegisAPI) window.aegisAPI.createNewTab('about:newtab');
+    };
+  </script>
+</body>
+</html>
