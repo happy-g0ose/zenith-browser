@@ -9,6 +9,7 @@ const INTERNAL_PAGE_NAMES = new Set([
   'customizer.html',
   'profiles.html',
   'fingerprint.html',
+  'extensions.html',
   'error.html'
 ]);
 
@@ -77,6 +78,14 @@ if (isInternalPage()) {
     maximizeWindow: () => ipcRenderer.send('window:maximize'),
     closeWindow: () => ipcRenderer.send('window:close'),
     setOverlayActive: (active) => ipcRenderer.send('overlay:set-active', active),
+
+    // Extensions Store
+    listExtensions: () => ipcRenderer.invoke('ext:list'),
+    chromeCandidates: () => ipcRenderer.invoke('ext:chrome-candidates'),
+    importExtension: (sourcePath) => ipcRenderer.invoke('ext:import', sourcePath),
+    installFromFolder: () => ipcRenderer.invoke('ext:install-folder'),
+    toggleExtension: (id, enabled) => ipcRenderer.invoke('ext:toggle', { id, enabled }),
+    uninstallExtension: (id) => ipcRenderer.invoke('ext:uninstall', id),
 
     // Events subscription
     onTabsUpdated: (callback) => ipcRenderer.on('tabs:updated', (_e, data) => callback(data)),

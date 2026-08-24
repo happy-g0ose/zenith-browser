@@ -38,13 +38,15 @@ if (!app.requestSingleInstanceLock()) {
 
 const configStore = require('./config-store');
 const AdblockShield = require('./adblock-shield');
-const SessionManager = require('./session-manager');
 const TorManager = require('./tor-manager');
+const ExtensionsManager = require('./extensions-manager');
+const SessionManager = require('./session-manager');
 
-// Initialize Shield, Tor daemon & Session Manager
+// Initialize Shield, Tor daemon, Extensions & Session Manager
 const adblockShield = new AdblockShield(configStore);
 const torManager = new TorManager();
-const sessionManager = new SessionManager(configStore, adblockShield, torManager);
+const extensionsManager = new ExtensionsManager(configStore);
+const sessionManager = new SessionManager(configStore, adblockShield, torManager, extensionsManager);
 
 let mainWindow = null;
 let tabs = [];
@@ -65,7 +67,9 @@ const INTERNAL_PAGE_ROUTES = {
   custom: 'customizer.html',
   userchrome: 'customizer.html',
   profiles: 'profiles.html',
-  identities: 'profiles.html'
+  identities: 'profiles.html',
+  extensions: 'extensions.html',
+  addons: 'extensions.html'
 };
 
 function internalPageUrl(routeKey) {
@@ -467,6 +471,17 @@ function setupIPCHandlers() {
     return torManager.status();
   });
 
+  // Extensions Store
+  ipcMain.handle('ext:list', () => extensionsManager.listInstalled());
+  ipcMain.handle('ext:chrome-candidates', () => extensionsManager.chromeCandidates());
+  ipcMain.handle('ext:import', (_e, sourcePath) => {
+    if (typeof sourcePath !== 'string' || !sourcePath) return { ok: false, error: 'bad path' };
+    return extensionsManager.importFromPath(sourcePath);
+  });
+  ipcMain.handle('ext:install-folder', () => extensionsManager.installFromFolderDialog());
+  ipcMain.handle('ext:toggle', (_e, { id, enabled }) => extensionsManager.toggle(String(id), !!enabled));
+  ipcMain.handle('ext:uninstall', (_e, id) => extensionsManager.uninstall(String(id)));
+
   // Bookmarks & History
   ipcMain.handle('bookmarks:get', () => configStore.getBookmarks());
   ipcMain.handle('bookmarks:add', (_e, b) => configStore.addBookmark(b));
@@ -606,7 +621,12 @@ function setupAppMenu() {
         { label: 'Командная палитра', accelerator: 'CommandOrControl+K', click: () => mainWindow && mainWindow.webContents.send('action:toggle-palette') },
         { label: 'Адресная строка', accelerator: 'CommandOrControl+L', click: () => mainWindow && mainWindow.webContents.send('action:focus-omnibox') },
         { type: 'separator' },
-        { label: 'Инструменты разработчика', accelerator: 'F12', click: toggleDevTools }
+        { label: 'Инструменты разработчика', accelerator: 'F12', click: toggleDevTools },
+        { label: 'Расширения', accelerator: 'CommandOrControl+Shift+E', click: () => {
+          if (!activeTabId) return;
+          const t = tabs.find(x => x.id === activeTabId);
+          if (t && t.view) t.view.webContents.loadURL(resolvePageUrl('about:extensions'));
+        } }
       ]
     }
   ];

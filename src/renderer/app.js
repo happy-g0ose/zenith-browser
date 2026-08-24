@@ -275,6 +275,11 @@ function setupPopups() {
     createTab('about:customizer');
   };
 
+  $('menu-opt-extensions').onclick = () => {
+    closeAllPopups();
+    createTab('about:extensions');
+  };
+
   $('menu-opt-vertical-tabs').onclick = () => {
     closeAllPopups();
     toggleVerticalTabs();
@@ -440,6 +445,7 @@ const paletteCommands = [
   { title: 'userChrome.css Studio',      key: 'Internal', action: () => createTab('about:customizer') },
   { title: 'Advanced Preferences',       key: 'Internal', action: () => createTab('about:config') },
   { title: 'Identity Profiles',          key: 'Internal', action: () => createTab('about:profiles') },
+{ title: 'Extensions Store',           key: 'Internal', action: () => createTab('about:extensions') },
   { title: 'Generate Random Identity',   key: 'Stealth',  action: async () => {
     if (!window.aegisAPI) return;
     const p = await window.aegisAPI.generateRandomFingerprint();

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith - Extensions Store</title>
+  <style>
+    :root {
+      --bg: #0b0d11; --panel: #12151c; --panel2: #161b22; --border: rgba(255,255,255,0.07);
+      --text: #c9d1d9; --bright: #e6edf3; --muted: #8b949e; --dim: #484f58;
+      --accent: #5b8def; --green: #3ecf8e; --yellow: #d29922; --red: #f85149;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+      padding: 28px 36px; min-height: 100vh;
+    }
+    header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    h1 { font-size: 20px; color: var(--bright); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    h1 svg { color: var(--accent); }
+    .spacer { flex: 1; }
+    .btn {
+      padding: 8px 14px; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--panel2); color: var(--text); cursor: pointer; font-size: 12.5px;
+      transition: background .12s, border-color .12s;
+    }
+    .btn:hover { background: #1c2330; border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: #6d9bf2; }
+    .hint { color: var(--dim); font-size: 12px; width: 100%; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; gap: 8px; position: relative;
+    }
+    .card.off { opacity: .55; }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .icon {
+      width: 40px; height: 40px; border-radius: 9px; background: #1c2330; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .icon img { width: 28px; height: 28px; object-fit: contain; }
+    .icon.fallback { color: var(--dim); font-size: 18px; }
+    .name { font-weight: 600; color: var(--bright); font-size: 13.5px; }
+    .ver { color: var(--dim); font-weight: 400; font-size: 11.5px; margin-left: 6px; }
+    .desc { color: var(--muted); font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+    .badge.full { background: rgba(62,207,142,.13); color: var(--green); }
+    .badge.partial { background: rgba(210,153,34,.13); color: var(--yellow); }
+    .badge.none { background: rgba(248,81,73,.13); color: var(--red); }
+    .reason { font-size: 11px; color: var(--dim); }
+    .actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; cursor: pointer; }
+    .switch input { display: none; }
+    .switch .track { position: absolute; inset: 0; border-radius: 20px; background: #2a3140; transition: background .15s; }
+    .switch .knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #8b949e; transition: transform .15s, background .15s; }
+    .switch input:checked ~ .track { background: rgba(91,141,239,.45); }
+    .switch input:checked ~ .knob { transform: translateX(16px); background: var(--accent); }
+    .btn.small { padding: 4px 10px; font-size: 11.5px; border-radius: 6px; }
+    .btn.danger:hover { border-color: var(--red); color: var(--red); }
+    .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 26px 0 12px; }
+    .empty { text-align: center; color: var(--dim); padding: 60px 0; }
+    .empty .big { font-size: 40px; margin-bottom: 12px; }
+    .modal-back {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50;
+      align-items: center; justify-content: center;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      width: min(680px, 92vw); max-height: 80vh; display: flex; flex-direction: column;
+    }
+    .modal-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+    .modal-head h2 { font-size: 15px; color: var(--bright); }
+    .modal-body { overflow-y: auto; padding: 12px 20px 20px; }
+    .cand { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .cand:last-child { border-bottom: none; }
+    .cand .info { flex: 1; min-width: 0; }
+    .cand .meta { color: var(--dim); font-size: 11px; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1c2330; border: 1px solid var(--border); color: var(--bright);
+      padding: 10px 18px; border-radius: 8px; font-size: 12.5px; opacity: 0;
+      transition: opacity .2s; pointer-events: none; z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+    .toast.err { border-color: var(--red); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>
+      Расширения
+    </h1>
+    <span class="spacer"></span>
+    <button class="btn" id="btn-import-chrome">Импорт из Chrome</button>
+    <button class="btn primary" id="btn-install-folder">Установить из папки</button>
+    <span class="hint">Поддерживаются распакованные расширения. Content-script расширения работают полностью; popup/tabs-API ограничены Electron.</span>
+  </header>
+
+  <div class="section-title">Установленные</div>
+  <div class="grid" id="installed-grid"></div>
+  <div class="empty" id="installed-empty">
+    <div class="big">🧩</div>
+    Расширений пока нет.<br>Импортируй из своего Chrome или установи из папки.
+  </div>
+
+  <div class="modal-back" id="chrome-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Расширения из Chrome</h2>
+        <span class="spacer"></span>
+        <button class="btn small" id="btn-close-modal">Закрыть</button>
+      </div>
+      <div class="modal-body" id="chrome-list"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="extensions.js"></script>
+</body>
+</html>

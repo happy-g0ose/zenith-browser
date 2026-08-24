@@ -70,7 +70,8 @@ class ConfigStore {
       'network.doh.provider': 'https://cloudflare-dns.com/dns-query',
 
       // Active Profile
-      'browser.active_profile': 'profile_default'
+      'browser.active_profile': 'profile_default',
+      'browser.extensions.disabled': []
     };
 
     this.defaultProfiles = [

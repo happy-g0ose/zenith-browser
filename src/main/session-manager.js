@@ -8,10 +8,11 @@ const { generateStealthScript } = require('../stealth/stealth-injections');
 const BRIDGE_SOURCE_PATH = path.join(__dirname, '../stealth/preload-content.js');
 
 class SessionManager {
-  constructor(configStore, adblockShield, torManager = null) {
+  constructor(configStore, adblockShield, torManager = null, extensionsManager = null) {
     this.configStore = configStore;
     this.adblockShield = adblockShield;
     this.torManager = torManager;
+    this.extensionsManager = extensionsManager;
     this.sessions = new Map(); // profileId -> Electron session
     this.generatedPreloads = new Set();
   }
@@ -95,6 +96,12 @@ class SessionManager {
     // 2. Attach AdBlock Shield
     const statKey = typeof profileOrId === 'string' ? profileOrId : (profile.id || 'incognito');
     this.adblockShield.attachToSession(ses, statKey);
+
+    // 2b. Attach unpacked extensions (persistent sessions only - incognito
+    // stays clean so extensions can never leak into throwaway identities)
+    if (typeof profileOrId === 'string' && this.extensionsManager) {
+      this.extensionsManager.attachToSession(ses);
+    }
 
     // 3. WebRTC Policy & Leak Prevention
     try {
