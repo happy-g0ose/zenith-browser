@@ -316,7 +316,9 @@ function generateStealthScript(profile) {
       const pluginArray = Object.create(PluginArray.prototype);
       mockPlugins.forEach((p, idx) => {
         const plug = Object.create(Plugin.prototype);
-        Object.assign(plug, p);
+        Object.defineProperty(plug, 'name', { value: p.name });
+        Object.defineProperty(plug, 'filename', { value: p.filename });
+        Object.defineProperty(plug, 'description', { value: p.description });
         pluginArray[idx] = plug;
         pluginArray[p.name] = plug;
       });

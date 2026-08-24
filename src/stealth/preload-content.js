@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { ipcRenderer } = require('electron');
 
 // Strict allow-list: the privileged bridge is exposed ONLY to built-in pages
 // shipped inside <app>/src/renderer/pages/. Remote sites (even ones with
@@ -26,7 +26,10 @@ function isInternalPage() {
 }
 
 if (isInternalPage()) {
-  contextBridge.exposeInMainWorld('aegisAPI', {
+  // contextBridge is unavailable with contextIsolation disabled; this file is
+  // only ever used inside the generated main-world composite preload, so a
+  // direct window assignment is the correct (and only) way to expose it.
+  window.aegisAPI = {
     // Preferences (about:config)
     getAllPrefs: () => ipcRenderer.invoke('prefs:get-all'),
     getPref: (key) => ipcRenderer.invoke('prefs:get', key),
@@ -95,5 +98,5 @@ if (isInternalPage()) {
     onFocusOmnibox: (callback) => ipcRenderer.on('action:focus-omnibox', (_e) => callback()),
     onPageDarken: (callback) => ipcRenderer.on('overlay:page-darken', (_e, dataUrl) => callback(dataUrl)),
     onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme))
-  });
+  };
 }

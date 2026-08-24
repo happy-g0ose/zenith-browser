@@ -47,7 +47,21 @@ class SessionManager {
       fs.writeFileSync(preloadPath, script, 'utf8');
     }
     this.generatedPreloads.add(preloadPath);
+    this._prunePreloadCache(runtimeDir, preloadPath);
     return preloadPath;
+  }
+
+  // Keep the runtime cache from growing forever across app updates
+  _prunePreloadCache(runtimeDir, keepPath) {
+    try {
+      const files = fs.readdirSync(runtimeDir)
+        .filter(f => /^content-[0-9a-f]{12}\.js$/.test(f) && f !== path.basename(keepPath))
+        .map(f => ({ name: f, mtime: fs.statSync(path.join(runtimeDir, f)).mtimeMs }))
+        .sort((a, b) => b.mtime - a.mtime);
+      for (const f of files.slice(6)) {
+        try { fs.unlinkSync(path.join(runtimeDir, f.name)); } catch (e) {}
+      }
+    } catch (e) {}
   }
 
   getOrCreateSession(profileId) {
