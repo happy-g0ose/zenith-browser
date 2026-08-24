@@ -585,7 +585,8 @@ function setupIPCHandlers() {
     if (sameType) return;
 
     const size = POPUP_SIZES[type] || POPUP_SIZES.menu;
-    const [wx, wy, ww] = mainWindow.getContentBounds();
+    const cb = mainWindow.getContentBounds();
+    const wx = cb.x, wy = cb.y, ww = cb.width;
     let x = wx + ww - size.w - 10;
     let y = wy + 86;
     if (rect && typeof rect.right === 'number') {
