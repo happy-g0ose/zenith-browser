@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { app, dialog, session } = require('electron');
+const { app, dialog } = require('electron');
 
 // Chromium browsers store unpacked extensions in <profile-root>/<profile>/Extensions.
 // Opera (and Opera GX) keep their profile in Roaming, not LocalAppData.
@@ -120,7 +120,10 @@ class ExtensionsManager {
     this.configStore = configStore;
     this.dir = path.join(app.getPath('userData'), 'extensions');
     fs.mkdirSync(this.dir, { recursive: true });
-    this.attached = new Map(); // sessionId -> Map(extDirName -> Extension handle)
+    // Session -> Map(extDirName -> Extension handle). Electron 34 has no
+    // session.getAllSessions(), so live sessions are tracked here as they
+    // are created by SessionManager.
+    this.attached = new Map();
   }
 
   get disabledIds() {
@@ -230,6 +233,7 @@ class ExtensionsManager {
   // Load every enabled unpacked extension into the session
   async attachToSession(ses) {
     if (!ses || typeof ses.loadExtension !== 'function') return;
+    this.attached.set(ses, this.attached.get(ses) || new Map());
     const disabled = this.disabledIds;
     let installed = [];
     try {
@@ -240,7 +244,7 @@ class ExtensionsManager {
         } catch (e) { return false; }
       });
     } catch (e) {}
-    const handles = this.attached.get(ses.id) || new Map();
+    const handles = this.attached.get(ses);
     for (const name of installed) {
       if (disabled.has(name) || handles.has(name)) continue;
       try {
@@ -252,11 +256,10 @@ class ExtensionsManager {
         }
       }
     }
-    this.attached.set(ses.id, handles);
   }
 
   attachAllSessions() {
-    for (const ses of session.getAllSessions()) {
+    for (const ses of this.attached.keys()) {
       this.attachToSession(ses);
     }
   }
@@ -267,13 +270,11 @@ class ExtensionsManager {
       set.delete(id);
     } else {
       set.add(id);
-      for (const [sesId, handles] of this.attached) {
+      for (const [ses, handles] of this.attached) {
         const ext = handles.get(id);
         if (ext) {
-          try {
-            const ses = session.getAllSessions().find(s => s.id === sesId);
-            if (ses) ses.unloadExtension(ext);
-          } catch (e) {}
+          // Electron 34: removeExtension(extensionId); unloadExtension() не существует
+          try { ses.removeExtension(ext.id); } catch (e) {}
           handles.delete(id);
         }
       }
