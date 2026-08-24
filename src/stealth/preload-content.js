@@ -10,6 +10,7 @@ const INTERNAL_PAGE_NAMES = new Set([
   'profiles.html',
   'fingerprint.html',
   'extensions.html',
+  'popup.html',
   'error.html'
 ]);
 

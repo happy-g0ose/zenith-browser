@@ -15,14 +15,9 @@ const browserBody = $('browser-body');
 const bookmarksBar = $('bookmarks-bar');
 const userChromeStyle = $('zenith-userchrome-css');
 
-// Popups
-const shieldPopup = $('shield-popup');
-const mainMenuPopup = $('main-menu-popup');
+// Popups (child windows)
 const btnShield = $('btn-shield');
 const btnMainMenu = $('btn-main-menu');
-const shieldBlockedCount = $('shield-blocked-count');
-const menuProfileName = $('menu-profile-name');
-const menuProfileDot = $('menu-profile-dot');
 
 // Command Palette
 const commandPalette = $('command-palette');
@@ -65,24 +60,9 @@ async function init() {
       navForward.disabled = !data.canGoForward;
       renderTabs();
     });
-    window.aegisAPI.onShieldUpdated(stats => {
-      if (stats && shieldBlockedCount) {
-        shieldBlockedCount.textContent = stats.totalBlocked;
-      }
-    });
+    window.aegisAPI.onShieldUpdated(() => {});
     window.aegisAPI.onCommandPaletteToggle(() => toggleCommandPalette());
     window.aegisAPI.onFocusOmnibox(() => { urlInput.focus(); urlInput.select(); });
-    window.aegisAPI.onPageDarken(dataUrl => {
-      const dimmer = $('page-dimmer');
-      if (!dimmer) return;
-      if (dataUrl === null) {
-        dimmer.classList.remove('active');
-        dimmer.style.backgroundImage = '';
-      } else {
-        dimmer.classList.add('active');
-        dimmer.style.backgroundImage = dataUrl ? `url(${dataUrl})` : 'none';
-      }
-    });
     window.aegisAPI.onThemeChanged(t => document.body.setAttribute('data-theme', t));
   }
 }
@@ -163,143 +143,27 @@ function createIncognitoTab(url = 'about:newtab') {
   if (window.aegisAPI) window.aegisAPI.createIncognitoTab(url);
 }
 
-// ---- Popups Management ----
-function updateOverlayState() {
-  const isAnyOpen = shieldPopup.classList.contains('visible') ||
-                    mainMenuPopup.classList.contains('visible') ||
-                    commandPalette.classList.contains('visible');
-  if (window.aegisAPI && typeof window.aegisAPI.setOverlayActive === 'function') {
-    window.aegisAPI.setOverlayActive(isAnyOpen);
+// ---- Popups Management (separate child windows above the page) ----
+function closeAllPopups() {
+  if (window.aegisAPI && typeof window.aegisAPI.closePopup === 'function') {
+    window.aegisAPI.closePopup();
   }
 }
 
-function closeAllPopups() {
-  shieldPopup.classList.remove('visible');
-  mainMenuPopup.classList.remove('visible');
-  updateOverlayState();
-}
-
-async function updateTorStatus() {
-  if (!window.aegisAPI) return;
-  const el = $('shield-tor-status');
-  const btn = $('btn-start-tor');
-  try {
-    const st = await window.aegisAPI.getTorStatus();
-    if (!el) return;
-    if (st && st.available && st.running) {
-      el.textContent = 'Подключён (9050)';
-      el.className = 'stat-value text-green';
-      if (btn) { btn.style.display = 'none'; }
-    } else if (st && st.available) {
-      el.textContent = 'Не запущен';
-      el.className = 'stat-value text-red';
-      if (btn) { btn.style.display = ''; }
-    } else {
-      el.textContent = 'tor.exe не найден';
-      el.className = 'stat-value text-red';
-      if (btn) { btn.style.display = 'none'; }
-    }
-  } catch (e) {}
-}
-
 function setupPopups() {
-  btnShield.onclick = e => {
+  const openFor = (type) => (e) => {
     e.stopPropagation();
-    updateTorStatus();
-    mainMenuPopup.classList.remove('visible');
-    shieldPopup.classList.toggle('visible');
-    updateOverlayState();
+    if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+    const r = e.currentTarget.getBoundingClientRect();
+    window.aegisAPI.openPopup(type, { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
   };
-
-  btnMainMenu.onclick = e => {
-    e.stopPropagation();
-    shieldPopup.classList.remove('visible');
-    mainMenuPopup.classList.toggle('visible');
-    updateOverlayState();
-  };
-
-  document.addEventListener('click', e => {
-    let changed = false;
-    if (shieldPopup.classList.contains('visible') && !shieldPopup.contains(e.target) && e.target !== btnShield) {
-      shieldPopup.classList.remove('visible');
-      changed = true;
-    }
-    if (mainMenuPopup.classList.contains('visible') && !mainMenuPopup.contains(e.target) && e.target !== btnMainMenu) {
-      mainMenuPopup.classList.remove('visible');
-      changed = true;
-    }
-    if (changed) updateOverlayState();
-  });
+  if (btnShield) btnShield.onclick = openFor('shield');
+  if (btnMainMenu) btnMainMenu.onclick = openFor('menu');
 
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeAllPopups();
     }
-  });
-
-  $('btn-start-tor').onclick = async () => {
-    const btn = $('btn-start-tor');
-    if (btn) { btn.textContent = 'Запуск Tor...'; btn.disabled = true; }
-    if (window.aegisAPI) await window.aegisAPI.startTor();
-    updateTorStatus();
-    if (btn) { btn.disabled = false; }
-  };
-
-  $('btn-open-audit').onclick = () => {
-    closeAllPopups();
-    createTab('about:fingerprint');
-  };
-
-  $('btn-switch-profile').onclick = () => {
-    closeAllPopups();
-    createTab('about:profiles');
-  };
-
-  $('menu-opt-profiles').onclick = () => {
-    closeAllPopups();
-    createTab('about:profiles');
-  };
-
-  $('menu-opt-fingerprint').onclick = () => {
-    closeAllPopups();
-    createTab('about:fingerprint');
-  };
-
-  $('menu-opt-config').onclick = () => {
-    closeAllPopups();
-    createTab('about:config');
-  };
-
-  $('menu-opt-customizer').onclick = () => {
-    closeAllPopups();
-    createTab('about:customizer');
-  };
-
-  $('menu-opt-extensions').onclick = () => {
-    closeAllPopups();
-    createTab('about:extensions');
-  };
-
-  $('menu-opt-vertical-tabs').onclick = () => {
-    closeAllPopups();
-    toggleVerticalTabs();
-  };
-
-  $('menu-opt-palette').onclick = () => {
-    closeAllPopups();
-    toggleCommandPalette(true);
-  };
-
-  $('menu-opt-incognito').onclick = () => {
-    closeAllPopups();
-    createIncognitoTab('about:newtab');
-  };
-
-  document.querySelectorAll('.theme-bubble').forEach(btn => {
-    btn.onclick = () => {
-      const t = btn.getAttribute('data-theme-val');
-      if (t) setTheme(t);
-    };
   });
 }
 
@@ -420,21 +284,11 @@ async function loadActiveProfile() {
   if (!window.aegisAPI) return;
   try {
     currentProfile = await window.aegisAPI.getActiveProfile();
-    if (currentProfile) {
-      if (menuProfileName) menuProfileName.textContent = currentProfile.name.replace(/^[^\w\sа-яА-ЯёЁ]+/, '').trim() || currentProfile.name;
-      if (menuProfileDot) menuProfileDot.style.backgroundColor = currentProfile.color || 'var(--accent)';
-    }
   } catch (e) {}
 }
 
 async function loadShieldStats() {
-  if (!window.aegisAPI) return;
-  try {
-    const stats = await window.aegisAPI.getShieldStats();
-    if (stats && shieldBlockedCount) {
-      shieldBlockedCount.textContent = stats.totalBlocked;
-    }
-  } catch (e) {}
+  // Shield stats now render inside the shield popup window
 }
 
 // Command Palette
@@ -478,7 +332,6 @@ function setupCommandPalette() {
 function toggleCommandPalette(force = null) {
   const show = force !== null ? force : !commandPalette.classList.contains('visible');
   commandPalette.classList.toggle('visible', show);
-  updateOverlayState();
   if (show) {
     paletteInput.value = '';
     renderPaletteResults('');

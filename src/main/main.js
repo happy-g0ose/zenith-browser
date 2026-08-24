@@ -52,7 +52,6 @@ let mainWindow = null;
 let tabs = [];
 let activeTabId = null;
 let tabCounter = 0;
-let overlayActive = false;
 
 // Internal pages registry: the ONLY local files reachable via zenith://, aegis:// or about:*
 const PAGES_DIR = path.join(__dirname, '../renderer/pages');
@@ -284,12 +283,6 @@ function switchTab(tabId) {
   if (mainWindow && targetTab.view) {
     mainWindow.contentView.addChildView(targetTab.view);
     updateViewBounds();
-    if (overlayActive) {
-      try {
-        targetTab.view.setVisible(false);
-        targetTab.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-      } catch (e) {}
-    }
   }
 
   notifyActiveTabChanged();
@@ -550,30 +543,101 @@ function setupIPCHandlers() {
   });
   ipcMain.on('window:close', () => mainWindow && mainWindow.close());
 
-  // Overlay popups: hide the native tab view and dim the page behind the popup.
-  // No page snapshot here on purpose: capturePage + PNG encode + IPC transfer
-  // stall the popup animation (visible stutter). Plain dark backdrop instead.
-  ipcMain.on('overlay:set-active', (_e, active) => {
-    overlayActive = !!active;
-    if (!activeTabId) return;
-    const currentTab = tabs.find(t => t.id === activeTabId);
-    if (!currentTab || !currentTab.view) return;
+  // ---- Popup windows (shield / main menu) ----
+  // Rendered in a frameless child window floating ABOVE the page view, so the
+  // page stays visible while open - it is only dimmed via injected CSS.
+  const POPUP_DIM_CSS = '@keyframes zenithDimIn{from{filter:none}to{filter:brightness(.5) saturate(.85)}}html{filter:brightness(.5) saturate(.85);animation:zenithDimIn .18s ease-out}';
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 } };
+  let popupWin = null;
+  let popupDim = null;
+  let popupLastClosedAt = 0;
+
+  function dimActivePage() {
     try {
-      if (overlayActive) {
-        if (typeof currentTab.view.setVisible === 'function') {
-          currentTab.view.setVisible(false);
-        }
-        currentTab.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-        mainWindow.webContents.send('overlay:page-darken', '');
-      } else {
-        mainWindow.webContents.send('overlay:page-darken', null);
-        updateViewBounds();
-        if (typeof currentTab.view.setVisible === 'function') {
-          currentTab.view.setVisible(true);
-        }
-      }
+      const t = tabs.find(x => x.id === activeTabId);
+      if (!t || !t.view) return;
+      t.view.webContents.insertCSS(POPUP_DIM_CSS, { cssOrigin: 'user' }).then(key => {
+        popupDim = { wc: t.view.webContents, key };
+      }).catch(() => {});
     } catch (e) {}
+  }
+
+  function undimPage() {
+    if (!popupDim) return;
+    try { popupDim.wc.removeCSS(popupDim.key); } catch (e) {}
+    popupDim = null;
+  }
+
+  function closePopupWindow() {
+    if (popupWin && !popupWin.isDestroyed()) popupWin.destroy();
+    popupWin = null;
+    undimPage();
+    popupLastClosedAt = Date.now();
+  }
+
+  function openPopupWindow(type, rect) {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const wasOpen = popupWin && !popupWin.isDestroyed();
+    const sameType = wasOpen && popupWin.__type === type;
+    closePopupWindow();
+    // Clicking the same trigger again while open = toggle off (the blur-close
+    // from the mousedown already destroyed the window)
+    if (sameType) return;
+
+    const size = POPUP_SIZES[type] || POPUP_SIZES.menu;
+    const [wx, wy, ww] = mainWindow.getContentBounds();
+    let x = wx + ww - size.w - 10;
+    let y = wy + 86;
+    if (rect && typeof rect.right === 'number') {
+      x = Math.max(wx + 8, Math.min(wx + rect.right - size.w + 14, wx + ww - size.w - 8));
+    }
+    if (rect && typeof rect.bottom === 'number') {
+      y = Math.min(wy + rect.bottom + 10, wy + 620);
+    }
+
+    popupWin = new BrowserWindow({
+      x, y,
+      width: size.w,
+      height: size.h,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      movable: false,
+      minimizable: false,
+      maximizable: false,
+      skipTaskbar: true,
+      parent: mainWindow,
+      show: false,
+      webPreferences: {
+        preload: path.join(__dirname, '../stealth/preload-content.js'),
+        contextIsolation: false,
+        nodeIntegration: false,
+        sandbox: true
+      }
+    });
+    popupWin.__type = type;
+    popupWin.setAlwaysOnTop(true, 'screen-saver');
+    popupWin.on('blur', () => closePopupWindow());
+    popupWin.on('closed', () => {
+      popupWin = null;
+      undimPage();
+      popupLastClosedAt = Date.now();
+    });
+    popupWin.loadFile(path.join(__dirname, '../renderer/pages/popup.html'), { search: 'panel=' + type });
+    popupWin.once('ready-to-show', () => {
+      if (popupWin && !popupWin.isDestroyed()) {
+        popupWin.show();
+        popupWin.focus();
+      }
+    });
+    dimActivePage();
+  }
+
+  ipcMain.on('popup:open', (_e, payload) => {
+    const p = payload || {};
+    openPopupWindow(p.type === 'shield' ? 'shield' : 'menu', p.rect);
   });
+  ipcMain.on('popup:close', () => closePopupWindow());
 }
 
 // Window-local accelerators via application menu (NOT system-wide global shortcuts)

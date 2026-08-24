@@ -114,115 +114,11 @@
         <div class="tab-list" id="tab-list-vertical" style="flex-direction: column; width: 100%;"></div>
       </aside>
 
-      <main class="web-viewport-container" id="web-viewport-container">
-        <div class="page-dimmer" id="page-dimmer"></div>
-      </main>
+      <main class="web-viewport-container" id="web-viewport-container"></main>
     </div>
   </div>
 
-  <!-- Privacy Shield Popup Flyout -->
-  <div class="popup-panel" id="shield-popup">
-    <div class="popup-header">
-      <div class="popup-title-group">
-        <svg viewBox="0 0 24 24" width="16" height="16" class="icon-green"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-        <span class="popup-title">Щит приватности</span>
-      </div>
-      <span class="badge-status">Активен</span>
-    </div>
-    <div class="popup-content">
-      <div class="popup-stat-row">
-        <span class="stat-label">Заблокировано трекеров и рекламы</span>
-        <span class="stat-value" id="shield-blocked-count">0</span>
-      </div>
-      <div class="popup-stat-row">
-        <span class="stat-label">Доступ к геолокации</span>
-        <span class="stat-value text-green">Заблокирован</span>
-      </div>
-      <div class="popup-stat-row">
-        <span class="stat-label">Шум Canvas & WebGL</span>
-        <span class="stat-value text-green">Активен</span>
-      </div>
-      <div class="popup-stat-row">
-        <span class="stat-label">Защита от утечек WebRTC</span>
-        <span class="stat-value text-green">Изолирован</span>
-      </div>
-      <div class="popup-stat-row">
-        <span class="stat-label">Tor</span>
-        <span class="stat-value" id="shield-tor-status">Проверка...</span>
-      </div>
-    </div>
-    <div class="popup-footer">
-      <button class="popup-btn" id="btn-start-tor">Запустить Tor (9050)</button>
-      <button class="popup-btn" id="btn-open-audit">Аудит отпечатков (Fingerprint Lab)</button>
-    </div>
-  </div>
-
-  <!-- Browser Main Menu Flyout -->
-  <div class="popup-panel" id="main-menu-popup">
-    <div class="menu-profile-card" id="menu-profile-card">
-      <div class="profile-info">
-        <span class="profile-dot-large" id="menu-profile-dot"></span>
-        <div class="profile-texts">
-          <span class="profile-label">Текущая личность</span>
-          <span class="profile-name" id="menu-profile-name">Default</span>
-        </div>
-      </div>
-      <button class="menu-sub-btn" id="btn-switch-profile" title="Управление личностями">Профили</button>
-    </div>
-
-    <div class="menu-divider"></div>
-
-    <div class="menu-items-list">
-      <button class="menu-item" id="menu-opt-profiles">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Профили цифровой личности</span>
-      </button>
-      <button class="menu-item" id="menu-opt-fingerprint">
-        <svg viewBox="0 0 24 24"><path d="M12 10a2 2 0 100 4 2 2 0 000-4z"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg>
-        <span>Аудит фингерпринта</span>
-      </button>
-      <button class="menu-item" id="menu-opt-config">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        <span>Настройки и конфигурация</span>
-      </button>
-      <button class="menu-item" id="menu-opt-customizer">
-        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-        <span>Редактор userChrome.css</span>
-      </button>
-      <button class="menu-item" id="menu-opt-extensions">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>
-        <span>Магазин расширений</span>
-      </button>
-      <button class="menu-item" id="menu-opt-vertical-tabs">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="4" rx="1"/><rect x="14" y="10" width="7" height="4" rx="1"/><rect x="14" y="17" width="7" height="4" rx="1"/></svg>
-        <span>Вертикальные вкладки</span>
-      </button>
-      <button class="menu-item" id="menu-opt-palette">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span>Командная палитра</span>
-        <span class="menu-shortcut">Ctrl+K</span>
-      </button>
-      <button class="menu-item" id="menu-opt-incognito">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5l8-2.5 8 2.5"/><path d="M4.5 8.5V13a7.5 3.5 0 0 0 15 0V8.5"/><path d="M9 12.5a1.5 1 0 0 0 3-.2M12 12.3a1.5 1 0 0 0 3 .2"/></svg>
-        <span>Инкогнито-вкладка (без следа)</span>
-        <span class="menu-shortcut">Ctrl+Shift+N</span>
-      </button>
-    </div>
-
-    <div class="menu-divider"></div>
-
-    <div class="menu-theme-row">
-      <span class="menu-subhead">Тема</span>
-      <div class="theme-bubbles">
-        <button class="theme-bubble" data-theme-val="stealth-dark" title="Stealth Dark" style="background: #0b0d11; border: 1px solid #5b8def;"></button>
-        <button class="theme-bubble" data-theme-val="oled-black" title="OLED Black" style="background: #000000; border: 1px solid #333;"></button>
-        <button class="theme-bubble" data-theme-val="nord" title="Nord" style="background: #242933; border: 1px solid #81a1c1;"></button>
-        <button class="theme-bubble" data-theme-val="tokyo-night" title="Tokyo Night" style="background: #1a1b26; border: 1px solid #7aa2f7;"></button>
-        <button class="theme-bubble" data-theme-val="gruvbox" title="Gruvbox" style="background: #1d2021; border: 1px solid #d79921;"></button>
-        <button class="theme-bubble" data-theme-val="paper-light" title="Paper Light" style="background: #f6f8fa; border: 1px solid #d0d7de;"></button>
-      </div>
-    </div>
-  </div>
+  <!-- Popup panels (shield / menu) now render in child windows: pages/popup.html -->
 
   <!-- Command Palette Modal -->
   <div class="command-palette-overlay" id="command-palette">

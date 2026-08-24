@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/themes.css">
+  <style>
+    html, body { background: transparent !important; overflow: hidden; }
+    body { padding: 0; }
+
+    .popup-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+      background: var(--bg-secondary, #161b22);
+      border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+      border-radius: 10px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      width: 100%;
+      height: 100vh;
+      animation: popupIn 0.18s var(--ease-spring, cubic-bezier(.34,1.15,.64,1));
+      transform-origin: top right;
+    }
+    @keyframes popupIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .popup-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .popup-title-group { display: flex; align-items: center; gap: 6px; }
+    .popup-title { font-size: 13px; font-weight: 600; color: var(--text-bright); }
+    .badge-status { font-size: 10.5px; padding: 2px 8px; border-radius: 20px; background: var(--green-muted, rgba(62,207,142,.12)); color: var(--green, #3ecf8e); font-weight: 600; }
+    .icon-green { color: var(--green, #3ecf8e); }
+
+    .popup-content { display: flex; flex-direction: column; gap: 8px; }
+    .popup-stat-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { color: var(--text); font-weight: 500; }
+    .text-green { color: var(--green, #3ecf8e); }
+
+    .popup-footer { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+    .popup-btn {
+      flex: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-tertiary, #1c2128); color: var(--text); font-size: 11.5px;
+      cursor: pointer; transition: background .15s var(--ease-smooth), border-color .15s var(--ease-smooth);
+    }
+    .popup-btn:hover { background: #232a35; border-color: var(--accent); }
+
+    .menu-profile-card {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 10px; border-radius: 8px; background: var(--bg-tertiary, #1c2128);
+      border: 1px solid var(--border);
+    }
+    .profile-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .profile-dot-large { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+    .profile-texts { display: flex; flex-direction: column; min-width: 0; }
+    .profile-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .profile-name { font-size: 12.5px; color: var(--text-bright); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-sub-btn {
+      padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+      background: transparent; color: var(--accent); font-size: 11.5px; cursor: pointer; flex-shrink: 0;
+      transition: background .15s, border-color .15s;
+    }
+    .menu-sub-btn:hover { background: var(--accent-muted); }
+
+    .menu-divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+    .menu-items-list { display: flex; flex-direction: column; gap: 2px; }
+    .menu-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 7px;
+      color: var(--text); font-size: 12.5px; cursor: pointer; border: none; background: none; text-align: left;
+      transition: background .14s var(--ease-smooth), transform .14s var(--ease-smooth);
+    }
+    .menu-item:hover { background: rgba(255, 255, 255, 0.06); transform: translateX(2px); }
+    .menu-item svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; flex-shrink: 0; color: var(--text-muted); }
+    .menu-item:hover svg { color: var(--accent); }
+    .menu-shortcut { margin-left: auto; font-size: 10.5px; color: var(--text-dim, #484f58); }
+
+    .menu-theme-row { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+    .menu-subhead { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 8px; }
+    .theme-bubbles { display: flex; gap: 8px; }
+    .theme-bubble {
+      width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 1px solid #333;
+      transition: transform .14s var(--ease-smooth), box-shadow .14s var(--ease-smooth);
+    }
+    .theme-bubble:hover { transform: scale(1.18); }
+    .theme-bubble.active { box-shadow: 0 0 0 2px var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="popup-panel" id="panel"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

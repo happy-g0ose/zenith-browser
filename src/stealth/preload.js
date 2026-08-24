@@ -64,7 +64,8 @@ if (isInternalPage) {
     minimizeWindow: () => ipcRenderer.send('window:minimize'),
     maximizeWindow: () => ipcRenderer.send('window:maximize'),
     closeWindow: () => ipcRenderer.send('window:close'),
-    setOverlayActive: (active) => ipcRenderer.send('overlay:set-active', active),
+    openPopup: (type, rect) => ipcRenderer.send('popup:open', { type, rect }),
+    closePopup: () => ipcRenderer.send('popup:close'),
 
     // Events subscription
     onTabsUpdated: (callback) => ipcRenderer.on('tabs:updated', (_e, data) => callback(data)),
