@@ -644,13 +644,27 @@ function setupIPCHandlers() {
       undimPage();
       popupLastClosedAt = Date.now();
     });
+    popupWin.webContents.on('did-fail-load', (_e, code, desc, url) => {
+      console.error(`[Zenith] Popup ${type} failed to load (${code} ${desc}): ${url}`);
+    });
+    popupWin.webContents.on('console-message', (e, level, message) => {
+      if (level >= 2) console.warn(`[Zenith][popup:${type}]`, message);
+    });
     popupWin.loadFile(path.join(__dirname, '../renderer/pages/popup.html'), { search: 'panel=' + type });
-    popupWin.once('ready-to-show', () => {
-      if (popupWin && !popupWin.isDestroyed()) {
+    let shown = false;
+    const doShow = () => {
+      if (shown || !popupWin || popupWin.isDestroyed()) return;
+      shown = true;
+      try {
         popupWin.show();
         popupWin.focus();
+      } catch (e) {
+        console.error('[Zenith] Popup show failed:', e.message);
       }
-    });
+    };
+    popupWin.once('ready-to-show', doShow);
+    // Fallback: transparent/child windows occasionally never emit ready-to-show
+    setTimeout(doShow, 1200);
     dimActivePage();
   }
 

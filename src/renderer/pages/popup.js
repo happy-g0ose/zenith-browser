@@ -50,9 +50,9 @@ async function renderMenu() {
     </div>
     <div class="menu-divider"></div>
     <div class="menu-items-list">
-      ${MENU_ITEMS.map(([id, path, label]) => `
-        <button class="menu-item" data-go="${id}">
-          <svg viewBox="0 0 24 24"><path d="${path}"/></svg>
+      ${MENU_ITEMS.map(([, svgPath, label, url]) => `
+        <button class="menu-item" data-go="${esc(url)}">
+          <svg viewBox="0 0 24 24"><path d="${svgPath}"/></svg>
           <span>${esc(label)}</span>
         </button>`).join('')}
       <button class="menu-item" data-go="about:newtab-incognito">
