@@ -142,11 +142,18 @@ if (window.aegisAPI) {
 
 // ---- Quick search engine picker ----
 const ENGINE_LIST = [
-  ['duckduckgo', 'DuckDuckGo', '#de5833'],
-  ['brave', 'Brave Search', '#fb542b'],
-  ['google', 'Google', '#4285f4'],
-  ['searx', 'SearXNG', '#3050ff']
+  ['duckduckgo', 'DuckDuckGo'],
+  ['brave', 'Brave Search'],
+  ['google', 'Google'],
+  ['searx', 'SearXNG']
 ];
+
+function engineDot(key) {
+  const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || { color: '#888', path: '' };
+  return `<span style="width:20px;height:20px;border-radius:50%;background:${icon.color};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="#fff"><path d="${icon.path}"/></svg>
+  </span>`;
+}
 
 async function renderEngine() {
   let current = 'duckduckgo';
@@ -157,9 +164,9 @@ async function renderEngine() {
       <span class="popup-title">Поисковик по умолчанию</span>
     </div>
     <div class="menu-items-list" style="margin-top:2px">
-      ${ENGINE_LIST.map(([key, name, color]) => `
+      ${ENGINE_LIST.map(([key, name]) => `
         <button class="menu-item" data-engine="${key}">
-          <span style="width:18px;height:18px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0">${name[0]}</span>
+          ${engineDot(key)}
           <span style="${key === current ? 'color:var(--accent);font-weight:600' : ''}">${esc(name)}</span>
           ${key === current ? '<span class="menu-shortcut" style="color:var(--accent)">●</span>' : ''}
         </button>`).join('')}

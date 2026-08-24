@@ -139,6 +139,16 @@ async function loadPreferences() {
 function initEngineSegment() {
   const seg = document.getElementById('engine-seg');
   if (!seg) return;
+  // Swap letter dots for real brand icons
+  if (window.ENGINE_ICONS) {
+    seg.querySelectorAll('.engine-seg-btn').forEach(btn => {
+      const icon = window.ENGINE_ICONS[btn.dataset.engine];
+      const dot = btn.querySelector('.engine-dot');
+      if (icon && dot) {
+        dot.innerHTML = `<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff"><path d="${icon.path}"/></svg>`;
+      }
+    });
+  }
   const current = allPrefs['ui.search.default_engine'] || 'duckduckgo';
   seg.querySelectorAll('.engine-seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.engine === current);

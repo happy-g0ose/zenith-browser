@@ -552,30 +552,22 @@ function setupIPCHandlers() {
   // ---- Popup windows (shield / main menu) ----
   // Rendered in a frameless child window floating ABOVE the page view, so the
   // page stays visible while open - it is only dimmed via injected CSS.
-  const POPUP_DIM_CSS = '@keyframes zenithDimIn{from{filter:none}to{filter:brightness(.5) saturate(.85)}}html{filter:brightness(.5) saturate(.85);animation:zenithDimIn .18s ease-out}';
+  const POPUP_DIM_CSS = 'html{filter:brightness(.5) saturate(.85);animation:zenithDimIn .18s ease-out}@keyframes zenithDimIn{from{filter:none}to{filter:brightness(.5) saturate(.85)}}';
+  // Electron 34 has WebContents.insertCSS but NO removeCSS - the only reliable
+  // way to toggle page dimming is an idempotent <style id> element.
+  const DIM_ON_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(!s){s=document.createElement('style');s.id='zenith-dim-style';s.textContent=${JSON.stringify(POPUP_DIM_CSS)};document.documentElement.appendChild(s);}})()`;
+  const DIM_OFF_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(s)s.parentNode.removeChild(s);})()`;
   const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 } };
   let popupWin = null;
-  let popupDim = null; // { wc, key, closed } - survives the async insertCSS race
+  let popupDim = null; // { wc }
   let popupLastClosedAt = 0;
 
   function dimActivePage() {
     try {
       const t = tabs.find(x => x.id === activeTabId);
       if (!t || !t.view) return;
-      undimPage();
-      const wc = t.view.webContents;
-      const entry = { wc, key: null, closed: false };
-      popupDim = entry;
-      wc.insertCSS(POPUP_DIM_CSS, { cssOrigin: 'user' }).then(key => {
-        entry.key = key;
-        if (entry.closed) {
-          // Popup already closed while the CSS was being inserted
-          wc.removeCSS(key).catch(() => {});
-          if (popupDim === entry) popupDim = null;
-        }
-      }).catch(() => {
-        if (popupDim === entry) popupDim = null;
-      });
+      popupDim = { wc: t.view.webContents };
+      t.view.webContents.executeJavaScript(DIM_ON_JS, true).catch(() => {});
     } catch (e) {}
   }
 
@@ -583,10 +575,7 @@ function setupIPCHandlers() {
     const entry = popupDim;
     if (!entry) return;
     popupDim = null;
-    entry.closed = true;
-    if (entry.key !== null) {
-      try { entry.wc.removeCSS(entry.key); } catch (e) {}
-    }
+    try { entry.wc.executeJavaScript(DIM_OFF_JS, true).catch(() => {}); } catch (e) {}
   }
 
   function closePopupWindow() {

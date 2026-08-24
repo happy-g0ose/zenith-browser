@@ -152,19 +152,26 @@ function setupOmnibox() {
 }
 
 const ENGINE_META = {
-  duckduckgo: { letter: 'D', color: '#de5833', name: 'DuckDuckGo' },
-  searx:      { letter: 'S', color: '#3050ff', name: 'SearXNG' },
-  brave:      { letter: 'B', color: '#fb542b', name: 'Brave' },
-  google:     { letter: 'G', color: '#4285f4', name: 'Google' }
+  duckduckgo: { name: 'DuckDuckGo' },
+  searx:      { name: 'SearXNG' },
+  brave:      { name: 'Brave' },
+  google:     { name: 'Google' }
 };
 
+function engineIconSvg(key, size = 12) {
+  const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || window.ENGINE_ICONS.google;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="#fff" aria-hidden="true"><path d="${icon.path}"/></svg>`;
+}
+
 function applyEngineUI(engineKey) {
-  const meta = ENGINE_META[engineKey] || ENGINE_META.duckduckgo;
-  if (SEARCH_ENGINES[engineKey]) searchEngine = SEARCH_ENGINES[engineKey];
+  const key = ENGINE_META[engineKey] ? engineKey : 'duckduckgo';
+  if (SEARCH_ENGINES[key]) searchEngine = SEARCH_ENGINES[key];
+  const meta = ENGINE_META[key];
+  const icon = window.ENGINE_ICONS[key];
   const btn = $('engine-btn');
   if (btn) {
-    btn.textContent = meta.letter;
-    btn.style.setProperty('--engine-color', meta.color);
+    btn.innerHTML = engineIconSvg(key, 12);
+    btn.style.setProperty('--engine-color', icon.color);
     btn.title = 'Поисковик: ' + meta.name;
   }
   urlInput.placeholder = `Поиск (${meta.name}) или ввод адреса...`;
