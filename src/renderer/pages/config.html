@@ -232,6 +232,8 @@
 
     .btn-reset:hover {
       background: var(--card-border);
+    }
+
     .lang-bar {
       display: flex;
       align-items: center;
@@ -277,6 +279,49 @@
     .lang-select:focus {
       border-color: var(--accent);
     }
+
+    .engine-seg {
+      display: flex;
+      gap: 6px;
+    }
+
+    .engine-seg-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: var(--radius-input);
+      border: 1px solid var(--card-border);
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .engine-seg-btn:hover {
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .engine-seg-btn.active {
+      border-color: var(--accent);
+      background: rgba(91, 141, 239, 0.12);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .engine-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -312,6 +357,23 @@
         <option value="es">Español (Spanish)</option>
         <option value="zh">中文 (Chinese)</option>
       </select>
+    </div>
+
+    <!-- Quick Search Engine Switcher -->
+    <div class="lang-bar">
+      <div class="lang-info">
+        <div class="lang-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Быстрый поисковик</span>
+        </div>
+        <span class="lang-desc">Используется в адресной строке одним кликом (кружок слева от омнибокса)</span>
+      </div>
+      <div class="engine-seg" id="engine-seg">
+        <button class="engine-seg-btn" data-engine="duckduckgo"><span class="engine-dot" style="background:#de5833">D</span>DuckDuckGo</button>
+        <button class="engine-seg-btn" data-engine="brave"><span class="engine-dot" style="background:#fb542b">B</span>Brave</button>
+        <button class="engine-seg-btn" data-engine="google"><span class="engine-dot" style="background:#4285f4">G</span>Google</button>
+        <button class="engine-seg-btn" data-engine="searx"><span class="engine-dot" style="background:#3050ff">S</span>SearXNG</button>
+      </div>
     </div>
 
     <div class="table-container">

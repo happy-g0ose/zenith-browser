@@ -64,6 +64,7 @@ class ConfigStore {
       'ui.usercontent.enabled': true,
       'ui.search.default_engine': 'duckduckgo', // 'duckduckgo', 'searx', 'brave', 'google'
       'ui.animations.enabled': true,
+      'ui.custom.overrides': {}, // { '--bg-tabstrip': '#0a0c10', ... } - smart customizer
 
       // Network & DNS
       'network.doh.enabled': true,

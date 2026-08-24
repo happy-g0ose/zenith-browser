@@ -58,18 +58,22 @@ async function init() {
     window.aegisAPI.onCommandPaletteToggle(() => toggleCommandPalette());
     window.aegisAPI.onFocusOmnibox(() => { urlInput.focus(); urlInput.select(); });
     window.aegisAPI.onThemeChanged(t => document.body.setAttribute('data-theme', t));
+    if (typeof window.aegisAPI.onEngineChanged === 'function') {
+      window.aegisAPI.onEngineChanged(engine => applyEngineUI(engine));
+    }
+    if (typeof window.aegisAPI.onCustomChanged === 'function') {
+      window.aegisAPI.onCustomChanged(overrides => applyCustomOverrides(overrides));
+    }
   }
 }
 
 async function loadSearchEngine() {
   if (!window.aegisAPI) return;
+  let engineKey = 'duckduckgo';
   try {
-    const engineKey = await window.aegisAPI.getPref('ui.search.default_engine');
-    if (engineKey && SEARCH_ENGINES[engineKey]) {
-      searchEngine = SEARCH_ENGINES[engineKey];
-    }
+    engineKey = (await window.aegisAPI.getPref('ui.search.default_engine')) || engineKey;
   } catch (e) {}
-  urlInput.placeholder = `Поиск (${searchEngine.name}) или ввод адреса...`;
+  applyEngineUI(engineKey);
 }
 
 async function applyUiPrefs() {
@@ -84,6 +88,14 @@ async function applyUiPrefs() {
   try {
     const animations = await window.aegisAPI.getPref('ui.animations.enabled');
     document.body.classList.toggle('no-animations', animations === false);
+  } catch (e) {}
+  try {
+    const engine = await window.aegisAPI.getPref('ui.search.default_engine');
+    applyEngineUI(engine);
+  } catch (e) {}
+  try {
+    const overrides = await window.aegisAPI.getPref('ui.custom.overrides');
+    applyCustomOverrides(overrides);
   } catch (e) {}
 }
 
@@ -127,6 +139,43 @@ function setupOmnibox() {
   });
 
   urlInput.addEventListener('focus', () => urlInput.select());
+
+  const engineBtn = $('engine-btn');
+  if (engineBtn) {
+    engineBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+      const r = engineBtn.getBoundingClientRect();
+      window.aegisAPI.openPopup('engine', { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+    };
+  }
+}
+
+const ENGINE_META = {
+  duckduckgo: { letter: 'D', color: '#de5833', name: 'DuckDuckGo' },
+  searx:      { letter: 'S', color: '#3050ff', name: 'SearXNG' },
+  brave:      { letter: 'B', color: '#fb542b', name: 'Brave' },
+  google:     { letter: 'G', color: '#4285f4', name: 'Google' }
+};
+
+function applyEngineUI(engineKey) {
+  const meta = ENGINE_META[engineKey] || ENGINE_META.duckduckgo;
+  if (SEARCH_ENGINES[engineKey]) searchEngine = SEARCH_ENGINES[engineKey];
+  const btn = $('engine-btn');
+  if (btn) {
+    btn.textContent = meta.letter;
+    btn.style.setProperty('--engine-color', meta.color);
+    btn.title = 'Поисковик: ' + meta.name;
+  }
+  urlInput.placeholder = `Поиск (${meta.name}) или ввод адреса...`;
+}
+
+function applyCustomOverrides(overrides) {
+  if (!overrides || typeof overrides !== 'object') return;
+  for (const [name, value] of Object.entries(overrides)) {
+    if (!name.startsWith('--') || typeof value !== 'string') continue;
+    document.documentElement.style.setProperty(name, value);
+  }
 }
 
 function createTab(url = 'about:newtab') {

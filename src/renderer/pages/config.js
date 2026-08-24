@@ -132,7 +132,21 @@ async function loadPreferences() {
   }
 
   initLanguageSelector();
+  initEngineSegment();
   renderPreferences();
+}
+
+function initEngineSegment() {
+  const seg = document.getElementById('engine-seg');
+  if (!seg) return;
+  const current = allPrefs['ui.search.default_engine'] || 'duckduckgo';
+  seg.querySelectorAll('.engine-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.engine === current);
+    btn.onclick = () => {
+      updatePref('ui.search.default_engine', btn.dataset.engine);
+      seg.querySelectorAll('.engine-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    };
+  });
 }
 
 function initLanguageSelector() {

@@ -134,9 +134,44 @@ async function renderShield() {
 if (window.aegisAPI) {
   if (type === 'shield') renderShield();
   else if (type === 'palette') renderPalette();
+  else if (type === 'engine') renderEngine();
   else renderMenu();
 } else {
   panel.innerHTML = '<div style="padding:20px;color:var(--text-muted)">Мост недоступен</div>';
+}
+
+// ---- Quick search engine picker ----
+const ENGINE_LIST = [
+  ['duckduckgo', 'DuckDuckGo', '#de5833'],
+  ['brave', 'Brave Search', '#fb542b'],
+  ['google', 'Google', '#4285f4'],
+  ['searx', 'SearXNG', '#3050ff']
+];
+
+async function renderEngine() {
+  let current = 'duckduckgo';
+  try { current = (await window.aegisAPI.getPref('ui.search.default_engine')) || current; } catch (e) {}
+
+  panel.innerHTML = `
+    <div class="popup-header">
+      <span class="popup-title">Поисковик по умолчанию</span>
+    </div>
+    <div class="menu-items-list" style="margin-top:2px">
+      ${ENGINE_LIST.map(([key, name, color]) => `
+        <button class="menu-item" data-engine="${key}">
+          <span style="width:18px;height:18px;border-radius:50%;background:${color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0">${name[0]}</span>
+          <span style="${key === current ? 'color:var(--accent);font-weight:600' : ''}">${esc(name)}</span>
+          ${key === current ? '<span class="menu-shortcut" style="color:var(--accent)">●</span>' : ''}
+        </button>`).join('')}
+    </div>`;
+
+  panel.querySelectorAll('[data-engine]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!window.aegisAPI) return;
+      await window.aegisAPI.setPref('ui.search.default_engine', btn.dataset.engine);
+      closeMe();
+    };
+  });
 }
 
 // ---- Command palette ----

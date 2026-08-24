@@ -1,256 +1,249 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenith - userChrome.css Studio</title>
+  <title>Zenith - Customizer Studio</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/themes.css">
   <style>
-    :root {
-      --bg: #0b0d11;
-      --card-bg: #161b22;
-      --card-border: rgba(255, 255, 255, 0.06);
-      --text: #c9d1d9;
-      --text-muted: #6e7681;
-      --accent: #5b8def;
-      --success: #3ecf8e;
-      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-      --radius-card: 6px;
-      --radius-input: 4px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background-color: var(--bg);
+      background: var(--bg-primary);
       color: var(--text);
-      font-family: var(--font-sans);
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
       min-height: 100vh;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
+      padding: 26px 34px;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+    .header-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .title-group h1 { font-size: 19px; font-weight: 600; color: var(--text-bright); display: flex; align-items: center; gap: 10px; }
+    .title-group h1 svg { color: var(--accent); }
+    .title-group p { color: var(--text-muted); font-size: 12px; margin-top: 3px; }
+
+    .tabs-header { display: flex; gap: 8px; margin-bottom: 18px; }
+    .tab-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+      font-size: 12.5px; font-weight: 500; padding: 7px 16px; border-radius: 7px; cursor: pointer;
+      transition: all 0.15s var(--ease-smooth);
+    }
+    .tab-btn:hover { color: var(--text-bright); border-color: var(--accent); }
+    .tab-btn.active { background: var(--accent-muted); color: var(--text-bright); border-color: var(--accent); }
+
+    .pane { display: none; }
+    .pane.active { display: block; }
+
+    /* ---- Visual studio layout ---- */
+    .visual-layout { display: grid; grid-template-columns: minmax(380px, 520px) 1fr; gap: 22px; align-items: start; }
+
+    .mini-wrap { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    .mini-wrap h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* Miniature browser mockup - parts are clickable */
+    .mini {
+      border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      user-select: none;
+    }
+    .m-row { display: flex; align-items: center; gap: 6px; padding: 0 10px; }
+    .m-tabstrip { height: 34px; background: var(--bg-tabstrip); }
+    .m-logo { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+    .m-tab { height: 22px; width: 84px; border-radius: 6px 6px 0 0; background: transparent; border: 1px solid transparent; border-bottom: none; margin-top: 12px; }
+    .m-tab.active { background: var(--bg-navbar); border-color: rgba(255,255,255,0.08); }
+    .m-spacer { flex: 1; }
+    .m-wbtns { display: flex; gap: 5px; }
+    .m-wbtn { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.18); }
+
+    .m-navbar { height: 38px; background: var(--bg-navbar); border-bottom: 1px solid var(--border); }
+    .m-navbtn { width: 18px; height: 18px; border-radius: 5px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+    .m-omnibox {
+      flex: 1; height: 24px; border-radius: 12px; background: var(--bg-tertiary);
+      display: flex; align-items: center; gap: 6px; padding: 0 10px;
+      border: 1px solid var(--border);
+    }
+    .m-lock { width: 8px; height: 8px; border-radius: 2px; background: var(--green); flex-shrink: 0; }
+    .m-url { height: 5px; width: 55%; border-radius: 3px; background: var(--text); opacity: 0.55; }
+    .m-accent-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    .m-bookmarks { height: 26px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+    .m-bm { display: flex; align-items: center; gap: 5px; }
+    .m-bm-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); opacity: .8; }
+    .m-bm-line { height: 4px; width: 34px; border-radius: 2px; background: var(--text); opacity: .3; }
+
+    .m-page { height: 190px; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+    .m-clock { font-size: 34px; font-weight: 200; color: var(--text); letter-spacing: 2px; }
+    .m-search { width: 55%; height: 22px; border-radius: 11px; border: 1px solid var(--border); background: var(--bg-tertiary); }
+    .m-links { display: flex; gap: 10px; }
+    .m-link { height: 4px; width: 42px; border-radius: 2px; background: var(--text); opacity: .25; }
+
+    .part { cursor: pointer; position: relative; transition: filter 0.12s; }
+    .part:hover { filter: brightness(1.25); }
+    .part.selected { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+    .part.selected::after {
+      content: attr(data-label);
+      position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; font-size: 9px; padding: 1px 7px;
+      border-radius: 8px; white-space: nowrap; pointer-events: none; z-index: 5;
     }
 
-    .header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--card-border);
-      padding-bottom: 16px;
-    }
+    /* Editor card */
+    .editor-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .editor-card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+    .sel-name { font-size: 16px; font-weight: 600; color: var(--text-bright); }
+    .sel-var { font-family: 'Cascadia Code', Consolas, monospace; font-size: 11.5px; color: var(--accent); opacity: .85; }
 
-    .title-group h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
+    .color-row { display: flex; align-items: center; gap: 12px; }
+    .color-row input[type="color"] {
+      width: 52px; height: 40px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg-primary); cursor: pointer; padding: 3px;
     }
-
-    .title-group p {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      margin-top: 4px;
+    .hex-input {
+      flex: 1; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 7px;
+      color: var(--text-bright); font-family: 'Cascadia Code', Consolas, monospace; font-size: 13px;
+      padding: 9px 12px; outline: none;
     }
-
-    .actions-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .hex-input:focus { border-color: var(--accent); }
 
     .btn {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-input);
-      padding: 8px 16px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: opacity 0.2s;
+      background: var(--accent); color: #fff; border: none; border-radius: 7px;
+      padding: 8px 16px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      transition: opacity 0.15s;
     }
+    .btn:hover { opacity: 0.88; }
+    .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.05); opacity: 1; }
+    .btn-danger { background: transparent; border: 1px solid rgba(248,81,73,.4); color: var(--red); }
+    .btn-danger:hover { background: rgba(248,81,73,.1); opacity: 1; }
+    .btn:disabled { opacity: .4; cursor: default; }
 
-    .btn:hover {
-      opacity: 0.9;
+    .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .preset-btn {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary);
+      color: var(--text); font-size: 12px; cursor: pointer; transition: border-color .14s;
     }
+    .preset-btn:hover { border-color: var(--accent); }
+    .preset-btn.active { border-color: var(--accent); background: var(--accent-muted); }
+    .preset-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
 
-    .btn-secondary {
-      background: transparent;
-      border: 1px solid var(--card-border);
-      color: var(--text);
-    }
-    
-    .btn-secondary:hover {
-      background: var(--card-border);
-    }
+    .hint { color: var(--text-muted); font-size: 11.5px; line-height: 1.55; }
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    .tabs-header {
-      display: flex;
-      gap: 8px;
-    }
-
-    .tab-btn {
-      background: transparent;
-      border: 1px solid var(--card-border);
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      font-weight: 500;
-      padding: 6px 16px;
-      border-radius: var(--radius-input);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .tab-btn.active {
-      background: var(--card-border);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    .editor-layout {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-      flex: 1;
-    }
-
-    .editor-container {
-      background: var(--bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-card);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .editor-toolbar {
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--card-border);
-      padding: 8px 16px;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
+    /* ---- CSS editor pane (legacy) ---- */
+    .editor-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+    .editor-container { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+    .editor-toolbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 8px 16px; font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; }
     .code-area {
-      flex: 1;
-      width: 100%;
-      min-height: 480px;
-      background: transparent;
-      border: none;
-      color: #c9d1d9;
-      font-family: var(--font-mono);
-      font-size: 0.92rem;
-      line-height: 1.6;
-      padding: 16px;
-      outline: none;
-      resize: none;
-      white-space: pre;
+      flex: 1; width: 100%; min-height: 480px; background: transparent; border: none;
+      color: var(--text); font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 13px; line-height: 1.6; padding: 16px; outline: none; resize: none; white-space: pre;
     }
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .sidebar-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .sidebar-card h3 { font-size: 13px; margin-bottom: 12px; font-weight: 600; color: var(--text-bright); }
+    .snippet-list { display: flex; flex-direction: column; gap: 8px; }
+    .snippet-btn { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 12px; text-align: left; cursor: pointer; }
+    .snippet-btn:hover { border-color: var(--accent); color: var(--text-bright); }
 
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .sidebar-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-card);
-      padding: 16px;
-    }
-
-    .sidebar-card h3 {
-      font-size: 0.95rem;
-      margin-bottom: 12px;
-      font-weight: 600;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .snippet-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .snippet-btn {
-      background: var(--bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-input);
-      padding: 8px 12px;
-      color: var(--text);
-      font-size: 0.82rem;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .snippet-btn:hover {
-      border-color: var(--accent);
-      color: #fff;
-    }
+    .subtabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .subtab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 11.5px; padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+    .subtab-btn.active { color: var(--text-bright); border-color: var(--accent); background: var(--accent-muted); }
 
     .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: var(--success);
-      color: #0b0d11;
-      padding: 10px 18px;
-      border-radius: var(--radius-input);
-      font-weight: 600;
-      font-size: 0.85rem;
-      display: none;
+      position: fixed; bottom: 24px; right: 24px; background: var(--green);
+      color: #0b0d11; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 12.5px;
+      opacity: 0; transform: translateY(8px); transition: all .2s var(--ease-smooth); pointer-events: none;
     }
+    .toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
 <body>
+  <div class="header-bar">
+    <div class="title-group">
+      <h1>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+        Студия кастомизации
+      </h1>
+      <p>Раскрашивай части браузера кликом по миниатюре — изменения применяются на лету. Для полного контроля — CSS-редактор.</p>
+    </div>
+  </div>
 
-  <div class="container">
-    <div class="header-bar">
-      <div class="title-group">
-        <h1>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
-          Студия кастомизации CSS (userChrome)
-        </h1>
-        <p>Прямое внедрение CSS-стилей в интерфейс браузера (userChrome.css) и веб-страницы (userContent.css).</p>
+  <div class="tabs-header">
+    <button class="tab-btn active" id="tab-visual">🎨 Визуальный стиль</button>
+    <button class="tab-btn" id="tab-css">⌨️ CSS-редактор (userChrome)</button>
+  </div>
+
+  <!-- ================= VISUAL PANE ================= -->
+  <div class="pane active" id="pane-visual">
+    <div class="visual-layout">
+      <div class="mini-wrap">
+        <h3>Миниатюра браузера — кликни по части</h3>
+        <div class="mini" id="mini">
+          <div class="m-row m-tabstrip part" data-var="--bg-tabstrip" data-label="Таббар">
+            <span class="m-logo part" data-var="--accent" data-label="Акцент"></span>
+            <span class="m-tab active part" data-var="--bg-navbar" data-label="Вкладка"></span>
+            <span class="m-tab"></span>
+            <span class="m-spacer"></span>
+            <span class="m-wbtns"><span class="m-wbtn"></span><span class="m-wbtn"></span><span class="m-wbtn"></span></span>
+          </div>
+          <div class="m-row m-navbar part" data-var="--bg-navbar" data-label="Панель">
+            <span class="m-navbtn"></span>
+            <span class="m-navbtn"></span>
+            <span class="m-navbtn"></span>
+            <span class="m-omnibox part" data-var="--bg-tertiary" data-label="Адресная строка">
+              <span class="m-lock"></span>
+              <span class="m-url part" data-var="--text" data-label="Текст"></span>
+            </span>
+            <span class="m-accent-dot part" data-var="--accent" data-label="Акцент"></span>
+          </div>
+          <div class="m-row m-bookmarks part" data-var="--bg-secondary" data-label="Закладки">
+            <span class="m-bm"><span class="m-bm-dot"></span><span class="m-bm-line"></span></span>
+            <span class="m-bm"><span class="m-bm-dot"></span><span class="m-bm-line"></span></span>
+            <span class="m-bm"><span class="m-bm-dot"></span><span class="m-bm-line"></span></span>
+          </div>
+          <div class="m-page part" data-var="--bg-primary" data-label="Страница">
+            <div class="m-clock part" data-var="--text" data-label="Текст">00:00</div>
+            <div class="m-search part" data-var="--bg-tertiary" data-label="Адресная строка"></div>
+            <div class="m-links"><span class="m-link"></span><span class="m-link"></span><span class="m-link"></span></div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:12px">Изменения применяются ко всему браузеру мгновенно и сохраняются автоматически.</p>
       </div>
-      <div class="actions-group">
-        <button class="btn btn-secondary" onclick="loadDefaultSnippet()">Сброс по умолчанию</button>
-        <button class="btn" onclick="saveAndApply()">Применить на лету</button>
+
+      <div class="editor-card">
+        <div>
+          <h3>Выбранная часть</h3>
+          <div class="sel-name" id="sel-name">Ничего не выбрано</div>
+          <div class="sel-var" id="sel-var">кликни по части миниатюры слева</div>
+        </div>
+
+        <div class="color-row">
+          <input type="color" id="color-picker" disabled>
+          <input type="text" class="hex-input" id="hex-input" placeholder="#RRGGBB" disabled spellcheck="false">
+        </div>
+
+        <div class="actions-row">
+          <button class="btn btn-secondary" id="btn-reset-part" disabled>Сбросить цвет части</button>
+          <button class="btn btn-danger" id="btn-reset-all">Сбросить всё</button>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:10px">Тема-пресет</h3>
+          <div class="preset-grid" id="preset-grid"></div>
+        </div>
+
+        <p class="hint">Тема задаёт базовые цвета, а раскраска частей накладывается поверх. Пресет применит тему и сбросит ручную раскраску.</p>
       </div>
     </div>
+  </div>
 
-    <div class="tabs-header">
-      <button class="tab-btn active" id="tab-userchrome" onclick="switchEditor('userchrome')">userChrome.css (Интерфейс)</button>
-      <button class="tab-btn" id="tab-usercontent" onclick="switchEditor('usercontent')">userContent.css (Страницы)</button>
+  <!-- ================= CSS EDITOR PANE ================= -->
+  <div class="pane" id="pane-css">
+    <div class="subtabs">
+      <button class="subtab-btn active" id="tab-userchrome">userChrome.css (Интерфейс)</button>
+      <button class="subtab-btn" id="tab-usercontent">userContent.css (Страницы)</button>
     </div>
-
     <div class="editor-layout">
       <div class="editor-container">
         <div class="editor-toolbar">
@@ -259,41 +252,34 @@
         </div>
         <textarea class="code-area" id="code-editor" spellcheck="false"></textarea>
       </div>
-
       <div class="sidebar">
         <div class="sidebar-card">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-            Готовые сниппеты UI
-          </h3>
+          <h3>⚡ Готовые сниппеты</h3>
           <div class="snippet-list">
-            <button class="snippet-btn" onclick="insertSnippet('compact_tabs')">Компактные минималистичные вкладки</button>
-            <button class="snippet-btn" onclick="insertSnippet('glassmorphism')">Эффект матового стекла (Frosted Glass)</button>
-            <button class="snippet-btn" onclick="insertSnippet('neon_cyberpunk')">Неоновое свечение (Cyberpunk Glow)</button>
-            <button class="snippet-btn" onclick="insertSnippet('autohide_omnibox')">Плавающая адресная строка</button>
+            <button class="snippet-btn" onclick="insertSnippet('compact_tabs')">Компактные вкладки</button>
+            <button class="snippet-btn" onclick="insertSnippet('glassmorphism')">Матовое стекло</button>
+            <button class="snippet-btn" onclick="insertSnippet('neon_cyberpunk')">Неон (Cyberpunk)</button>
+            <button class="snippet-btn" onclick="insertSnippet('autohide_omnibox')">Плавающая строка</button>
             <button class="snippet-btn" onclick="insertSnippet('oled_black')">Глубокий чёрный OLED</button>
           </div>
         </div>
-
         <div class="sidebar-card">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            Подсказки селекторов
-          </h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-            Вы можете стилизовать любые элементы оболочки Zenith:
-            <br>• <code>.tab-list</code>, <code>.tab-item</code>, <code>.tab-item.active</code>
-            <br>• <code>.omnibox-wrapper</code>, <code>.url-input</code>
-            <br>• <code>.nav-btn</code>, <code>.btn-shield</code>
-            <br>• CSS-переменные: <code>--accent</code>, <code>--bg-navbar</code>.
+          <h3>💡 Подсказки селекторов</h3>
+          <p class="hint">
+            Стилизуй любые элементы оболочки:<br>
+            • <code>.tab-item</code>, <code>.omnibox-wrapper</code>, <code>.nav-btn</code><br>
+            • Переменные: <code>--accent</code>, <code>--bg-navbar</code>, <code>--bg-tabstrip</code>
           </p>
+        </div>
+        <div class="actions-row">
+          <button class="btn btn-secondary" onclick="loadDefaultSnippet()">Сброс</button>
+          <button class="btn" onclick="saveAndApply()">Применить</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast">Стили успешно применены!</div>
-
+  <div class="toast" id="toast"></div>
   <script src="customizer.js"></script>
 </body>
 </html>

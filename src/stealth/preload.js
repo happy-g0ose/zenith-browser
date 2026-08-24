@@ -74,6 +74,8 @@ if (isInternalPage) {
     onCommandPaletteToggle: (callback) => ipcRenderer.on('action:toggle-palette', (_e) => callback()),
     onFocusOmnibox: (callback) => ipcRenderer.on('action:focus-omnibox', (_e) => callback()),
     onPageDarken: (callback) => ipcRenderer.on('overlay:page-darken', (_e, dataUrl) => callback(dataUrl)),
-    onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme))
+    onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme)),
+    onEngineChanged: (callback) => ipcRenderer.on('engine:changed', (_e, engine) => callback(engine)),
+    onCustomChanged: (callback) => ipcRenderer.on('custom:changed', (_e, overrides) => callback(overrides))
   });
 }

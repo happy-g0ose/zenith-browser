@@ -426,6 +426,12 @@ function setupIPCHandlers() {
     if (key === 'ui.theme') {
       mainWindow.webContents.send('theme:changed', val);
     }
+    if (key === 'ui.search.default_engine') {
+      mainWindow.webContents.send('engine:changed', val);
+    }
+    if (key === 'ui.custom.overrides') {
+      mainWindow.webContents.send('custom:changed', val);
+    }
   });
   ipcMain.handle('prefs:reset', (_e, key) => configStore.resetPref(key));
 
@@ -547,7 +553,7 @@ function setupIPCHandlers() {
   // Rendered in a frameless child window floating ABOVE the page view, so the
   // page stays visible while open - it is only dimmed via injected CSS.
   const POPUP_DIM_CSS = '@keyframes zenithDimIn{from{filter:none}to{filter:brightness(.5) saturate(.85)}}html{filter:brightness(.5) saturate(.85);animation:zenithDimIn .18s ease-out}';
-  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 } };
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 } };
   let popupWin = null;
   let popupDim = null; // { wc, key, closed } - survives the async insertCSS race
   let popupLastClosedAt = 0;
@@ -607,6 +613,9 @@ function setupIPCHandlers() {
     if (type === 'palette') {
       x = wx + Math.round((ww - size.w) / 2);
       y = wy + 64;
+    } else if (type === 'engine' && rect && typeof rect.left === 'number') {
+      x = Math.max(wx + 8, wx + rect.left - 8);
+      y = wy + (rect.bottom || 84) + 10;
     } else {
       if (rect && typeof rect.right === 'number') {
         x = Math.max(wx + 8, Math.min(wx + rect.right - size.w + 14, wx + ww - size.w - 8));
@@ -670,7 +679,7 @@ function setupIPCHandlers() {
 
   ipcMain.on('popup:open', (_e, payload) => {
     const p = payload || {};
-    const type = ['shield', 'menu', 'palette'].includes(p.type) ? p.type : 'menu';
+    const type = ['shield', 'menu', 'palette', 'engine'].includes(p.type) ? p.type : 'menu';
     openPopupWindow(type, p.rect);
   });
   ipcMain.on('popup:close', () => closePopupWindow());
