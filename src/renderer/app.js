@@ -75,12 +75,12 @@ async function init() {
     window.aegisAPI.onPageDarken(dataUrl => {
       const dimmer = $('page-dimmer');
       if (!dimmer) return;
-      if (dataUrl) {
-        dimmer.style.backgroundImage = `url(${dataUrl})`;
-        dimmer.classList.add('active');
-      } else {
+      if (dataUrl === null) {
         dimmer.classList.remove('active');
         dimmer.style.backgroundImage = '';
+      } else {
+        dimmer.classList.add('active');
+        dimmer.style.backgroundImage = dataUrl ? `url(${dataUrl})` : 'none';
       }
     });
     window.aegisAPI.onThemeChanged(t => document.body.setAttribute('data-theme', t));

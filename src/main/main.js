@@ -550,24 +550,21 @@ function setupIPCHandlers() {
   });
   ipcMain.on('window:close', () => mainWindow && mainWindow.close());
 
-  // Overlay popups: hide the native tab view and show a dimmed page snapshot behind the popup
-  ipcMain.on('overlay:set-active', async (_e, active) => {
+  // Overlay popups: hide the native tab view and dim the page behind the popup.
+  // No page snapshot here on purpose: capturePage + PNG encode + IPC transfer
+  // stall the popup animation (visible stutter). Plain dark backdrop instead.
+  ipcMain.on('overlay:set-active', (_e, active) => {
     overlayActive = !!active;
     if (!activeTabId) return;
     const currentTab = tabs.find(t => t.id === activeTabId);
     if (!currentTab || !currentTab.view) return;
     try {
       if (overlayActive) {
-        let pageSnapshot = null;
-        try {
-          const img = await currentTab.view.webContents.capturePage();
-          if (img && !img.isEmpty()) pageSnapshot = img.toDataURL();
-        } catch (e) {}
-        mainWindow.webContents.send('overlay:page-darken', pageSnapshot);
         if (typeof currentTab.view.setVisible === 'function') {
           currentTab.view.setVisible(false);
         }
         currentTab.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+        mainWindow.webContents.send('overlay:page-darken', '');
       } else {
         mainWindow.webContents.send('overlay:page-darken', null);
         updateViewBounds();
