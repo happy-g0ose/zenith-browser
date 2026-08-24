@@ -698,6 +698,12 @@ function setupAppMenu() {
 }
 
 // App lifecycle
+process.on('uncaughtException', (err) => {
+  // A browser must not die on a single unhandled main-process error:
+  // log loudly and keep running instead of showing a modal crash dialog.
+  console.error('[Zenith] Uncaught main-process error:', err && err.stack ? err.stack : err);
+});
+
 app.whenReady().then(() => {
   // Real DNS-over-HTTPS (privacy.shield / network.doh prefs)
   try {
