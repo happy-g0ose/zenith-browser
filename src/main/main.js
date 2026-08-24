@@ -547,25 +547,40 @@ function setupIPCHandlers() {
   // Rendered in a frameless child window floating ABOVE the page view, so the
   // page stays visible while open - it is only dimmed via injected CSS.
   const POPUP_DIM_CSS = '@keyframes zenithDimIn{from{filter:none}to{filter:brightness(.5) saturate(.85)}}html{filter:brightness(.5) saturate(.85);animation:zenithDimIn .18s ease-out}';
-  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 } };
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 } };
   let popupWin = null;
-  let popupDim = null;
+  let popupDim = null; // { wc, key, closed } - survives the async insertCSS race
   let popupLastClosedAt = 0;
 
   function dimActivePage() {
     try {
       const t = tabs.find(x => x.id === activeTabId);
       if (!t || !t.view) return;
-      t.view.webContents.insertCSS(POPUP_DIM_CSS, { cssOrigin: 'user' }).then(key => {
-        popupDim = { wc: t.view.webContents, key };
-      }).catch(() => {});
+      undimPage();
+      const wc = t.view.webContents;
+      const entry = { wc, key: null, closed: false };
+      popupDim = entry;
+      wc.insertCSS(POPUP_DIM_CSS, { cssOrigin: 'user' }).then(key => {
+        entry.key = key;
+        if (entry.closed) {
+          // Popup already closed while the CSS was being inserted
+          wc.removeCSS(key).catch(() => {});
+          if (popupDim === entry) popupDim = null;
+        }
+      }).catch(() => {
+        if (popupDim === entry) popupDim = null;
+      });
     } catch (e) {}
   }
 
   function undimPage() {
-    if (!popupDim) return;
-    try { popupDim.wc.removeCSS(popupDim.key); } catch (e) {}
+    const entry = popupDim;
+    if (!entry) return;
     popupDim = null;
+    entry.closed = true;
+    if (entry.key !== null) {
+      try { entry.wc.removeCSS(entry.key); } catch (e) {}
+    }
   }
 
   function closePopupWindow() {
@@ -589,11 +604,16 @@ function setupIPCHandlers() {
     const wx = cb.x, wy = cb.y, ww = cb.width;
     let x = wx + ww - size.w - 10;
     let y = wy + 86;
-    if (rect && typeof rect.right === 'number') {
-      x = Math.max(wx + 8, Math.min(wx + rect.right - size.w + 14, wx + ww - size.w - 8));
-    }
-    if (rect && typeof rect.bottom === 'number') {
-      y = Math.min(wy + rect.bottom + 10, wy + 620);
+    if (type === 'palette') {
+      x = wx + Math.round((ww - size.w) / 2);
+      y = wy + 64;
+    } else {
+      if (rect && typeof rect.right === 'number') {
+        x = Math.max(wx + 8, Math.min(wx + rect.right - size.w + 14, wx + ww - size.w - 8));
+      }
+      if (rect && typeof rect.bottom === 'number') {
+        y = Math.min(wy + rect.bottom + 10, wy + 620);
+      }
     }
 
     popupWin = new BrowserWindow({
@@ -636,7 +656,8 @@ function setupIPCHandlers() {
 
   ipcMain.on('popup:open', (_e, payload) => {
     const p = payload || {};
-    openPopupWindow(p.type === 'shield' ? 'shield' : 'menu', p.rect);
+    const type = ['shield', 'menu', 'palette'].includes(p.type) ? p.type : 'menu';
+    openPopupWindow(type, p.rect);
   });
   ipcMain.on('popup:close', () => closePopupWindow());
 }

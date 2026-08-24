@@ -19,11 +19,6 @@ const userChromeStyle = $('zenith-userchrome-css');
 const btnShield = $('btn-shield');
 const btnMainMenu = $('btn-main-menu');
 
-// Command Palette
-const commandPalette = $('command-palette');
-const paletteInput = $('palette-input');
-const paletteResults = $('palette-results');
-
 // Search engines (ui.search.default_engine)
 const SEARCH_ENGINES = {
   duckduckgo: { url: 'https://duckduckgo.com/?q=', name: 'DuckDuckGo' },
@@ -40,7 +35,6 @@ async function init() {
   setupNavButtons();
   setupOmnibox();
   setupPopups();
-  setupCommandPalette();
   setupShortcuts();
   await loadUserChromeCSS();
   await loadActiveProfile();
@@ -291,66 +285,11 @@ async function loadShieldStats() {
   // Shield stats now render inside the shield popup window
 }
 
-// Command Palette
-const paletteCommands = [
-  { title: 'New Tab',                    key: 'Ctrl+T',   action: () => createTab('about:newtab') },
-  { title: 'New Incognito Tab',          key: 'Ctrl+Shift+N', action: () => createIncognitoTab('about:newtab') },
-  { title: 'Fingerprint Audit Lab',      key: 'Internal', action: () => createTab('about:fingerprint') },
-  { title: 'userChrome.css Studio',      key: 'Internal', action: () => createTab('about:customizer') },
-  { title: 'Advanced Preferences',       key: 'Internal', action: () => createTab('about:config') },
-  { title: 'Identity Profiles',          key: 'Internal', action: () => createTab('about:profiles') },
-{ title: 'Extensions Store',           key: 'Internal', action: () => createTab('about:extensions') },
-  { title: 'Generate Random Identity',   key: 'Stealth',  action: async () => {
-    if (!window.aegisAPI) return;
-    const p = await window.aegisAPI.generateRandomFingerprint();
-    await window.aegisAPI.saveProfile(p);
-    await window.aegisAPI.setActiveProfile(p.id);
-    await loadActiveProfile();
-  }},
-  { title: 'Toggle Vertical Tabs',       key: 'Layout',   action: toggleVerticalTabs },
-  { title: 'Theme: Stealth Dark',        key: 'Theme',    action: () => setTheme('stealth-dark') },
-  { title: 'Theme: OLED Black',          key: 'Theme',    action: () => setTheme('oled-black') },
-  { title: 'Theme: Nord',                key: 'Theme',    action: () => setTheme('nord') },
-  { title: 'Theme: Tokyo Night',         key: 'Theme',    action: () => setTheme('tokyo-night') },
-  { title: 'Theme: Gruvbox',             key: 'Theme',    action: () => setTheme('gruvbox') },
-  { title: 'Theme: Paper Light',         key: 'Theme',    action: () => setTheme('paper-light') },
-  { title: 'Reset Blocked Counter',      key: 'Privacy',  action: () => window.aegisAPI && window.aegisAPI.resetShieldStats() }
-];
-
-function setupCommandPalette() {
-  commandPalette.onclick = e => { if (e.target === commandPalette) toggleCommandPalette(false); };
-  paletteInput.addEventListener('input', () => renderPaletteResults(paletteInput.value));
-  paletteInput.addEventListener('keydown', e => {
-    if (e.key === 'Escape') toggleCommandPalette(false);
-    else if (e.key === 'Enter') {
-      const first = paletteResults.querySelector('.palette-item');
-      if (first) first.click();
-    }
-  });
-}
-
+// Command palette lives in its own child window (pages/popup.html?panel=palette)
 function toggleCommandPalette(force = null) {
-  const show = force !== null ? force : !commandPalette.classList.contains('visible');
-  commandPalette.classList.toggle('visible', show);
-  if (show) {
-    paletteInput.value = '';
-    renderPaletteResults('');
-    setTimeout(() => paletteInput.focus(), 30);
-  }
-}
-
-function renderPaletteResults(query = '') {
-  paletteResults.innerHTML = '';
-  const q = query.toLowerCase().trim();
-  const filtered = paletteCommands.filter(c => c.title.toLowerCase().includes(q) || c.key.toLowerCase().includes(q));
-
-  filtered.forEach((cmd, i) => {
-    const el = document.createElement('div');
-    el.className = `palette-item${i === 0 ? ' selected' : ''}`;
-    el.innerHTML = `<span>${cmd.title}</span><span class="palette-item-shortcut">${cmd.key}</span>`;
-    el.onclick = () => { toggleCommandPalette(false); cmd.action(); };
-    paletteResults.appendChild(el);
-  });
+  if (force === false) { closeAllPopups(); return; }
+  if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+  window.aegisAPI.openPopup('palette');
 }
 
 function setTheme(theme) {

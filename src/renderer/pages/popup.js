@@ -56,7 +56,7 @@ async function renderMenu() {
           <span>${esc(label)}</span>
         </button>`).join('')}
       <button class="menu-item" data-go="about:newtab-incognito">
-        <svg viewBox="0 0 24 24"><path d="M4 8.5l8-2.5 8 2.5"/><path d="M4.5 8.5V13a7.5 3.5 0 0 0 15 0V8.5"/><path d="M9 12.5a1.5 1 0 0 0 3-.2M12 12.3a1.5 1 0 0 0 3 .2"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M9 3.5h6a2 2 0 0 1 1.97 1.63L18 9.5"/><path d="M6 9.5l1.03-4.37A2 2 0 0 1 9 3.5"/><path d="M3.5 9.5h17"/><circle cx="8.5" cy="16" r="2.75"/><circle cx="15.5" cy="16" r="2.75"/><path d="M11.25 16h1.5"/></svg>
         <span>Инкогнито-вкладка (без следа)</span>
         <span class="menu-shortcut">Ctrl+Shift+N</span>
       </button>
@@ -133,7 +133,85 @@ async function renderShield() {
 
 if (window.aegisAPI) {
   if (type === 'shield') renderShield();
+  else if (type === 'palette') renderPalette();
   else renderMenu();
 } else {
   panel.innerHTML = '<div style="padding:20px;color:var(--text-muted)">Мост недоступен</div>';
+}
+
+// ---- Command palette ----
+const PALETTE_COMMANDS = [
+  { title: 'Новая вкладка',                 key: 'Ctrl+T',        run: () => window.aegisAPI.createNewTab('about:newtab') },
+  { title: 'Новая инкогнито-вкладка',       key: 'Ctrl+Shift+N',  run: () => window.aegisAPI.createIncognitoTab('about:newtab') },
+  { title: 'Аудит фингерпринта',            key: 'Internal',      run: () => go('about:fingerprint') },
+  { title: 'Профили личности',              key: 'Internal',      run: () => go('about:profiles') },
+  { title: 'Редактор userChrome.css',       key: 'Internal',      run: () => go('about:customizer') },
+  { title: 'Настройки',                     key: 'Internal',      run: () => go('about:config') },
+  { title: 'Магазин расширений',            key: 'Internal',      run: () => go('about:extensions') },
+  { title: 'Сгенерировать случайную личность', key: 'Stealth',    run: async () => {
+      const p = await window.aegisAPI.generateRandomFingerprint();
+      await window.aegisAPI.saveProfile(p);
+      await window.aegisAPI.setActiveProfile(p.id);
+    } },
+  { title: 'Переключить вертикальные вкладки', key: 'Layout',     run: async () => {
+      const pos = await window.aegisAPI.getPref('ui.tabs.position', 'top');
+      await window.aegisAPI.setPref('ui.tabs.position', pos === 'left' ? 'top' : 'left');
+      await window.aegisAPI.reloadUIStyles();
+    } },
+  { title: 'Сбросить счётчик блокировок',   key: 'Privacy',       run: () => window.aegisAPI.resetShieldStats() },
+  { title: 'Тема: Stealth Dark',            key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'stealth-dark') },
+  { title: 'Тема: OLED Black',              key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'oled-black') },
+  { title: 'Тема: Nord',                    key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'nord') },
+  { title: 'Тема: Tokyo Night',             key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'tokyo-night') },
+  { title: 'Тема: Gruvbox',                 key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'gruvbox') },
+  { title: 'Тема: Paper Light',             key: 'Theme',         run: () => window.aegisAPI.setPref('ui.theme', 'paper-light') }
+];
+
+async function renderPalette() {
+  panel.innerHTML = `
+    <div class="palette-input-wrapper">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="palette-input" id="pal-input" placeholder="Введите команду..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="palette-results" id="pal-results"></div>`;
+  const input = $('pal-input');
+  const results = $('pal-results');
+  let filtered = PALETTE_COMMANDS;
+  let selected = 0;
+
+  function render() {
+    if (!filtered.length) {
+      results.innerHTML = '<div class="palette-empty">Ничего не найдено</div>';
+      return;
+    }
+    results.innerHTML = filtered.map((c, i) => `
+      <button class="palette-item ${i === selected ? 'selected' : ''}" data-i="${i}">
+        <span>${esc(c.title)}</span><span class="p-key">${esc(c.key)}</span>
+      </button>`).join('');
+  }
+
+  function exec(cmd) {
+    closeMe();
+    try { Promise.resolve(cmd.run()).catch(() => {}); } catch (e) {}
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    filtered = PALETTE_COMMANDS.filter(c => c.title.toLowerCase().includes(q));
+    selected = 0;
+    render();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); render(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); render(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[selected]) exec(filtered[selected]); }
+    else if (e.key === 'Escape') { closeMe(); }
+  });
+  results.addEventListener('click', (e) => {
+    const btn = e.target.closest('.palette-item');
+    if (btn && filtered[btn.dataset.i]) exec(filtered[btn.dataset.i]);
+  });
+
+  render();
+  setTimeout(() => input.focus(), 40);
 }
