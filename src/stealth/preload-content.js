@@ -82,7 +82,7 @@ if (isInternalPage()) {
     // Extensions Store
     listExtensions: () => ipcRenderer.invoke('ext:list'),
     chromeCandidates: () => ipcRenderer.invoke('ext:chrome-candidates'),
-    importExtension: (sourcePath) => ipcRenderer.invoke('ext:import', sourcePath),
+    importExtension: (sourcePath, chromeId) => ipcRenderer.invoke('ext:import', { sourcePath, chromeId }),
     installFromFolder: () => ipcRenderer.invoke('ext:install-folder'),
     toggleExtension: (id, enabled) => ipcRenderer.invoke('ext:toggle', { id, enabled }),
     uninstallExtension: (id) => ipcRenderer.invoke('ext:uninstall', id),

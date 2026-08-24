@@ -474,9 +474,10 @@ function setupIPCHandlers() {
   // Extensions Store
   ipcMain.handle('ext:list', () => extensionsManager.listInstalled());
   ipcMain.handle('ext:chrome-candidates', () => extensionsManager.chromeCandidates());
-  ipcMain.handle('ext:import', (_e, sourcePath) => {
-    if (typeof sourcePath !== 'string' || !sourcePath) return { ok: false, error: 'bad path' };
-    return extensionsManager.importFromPath(sourcePath);
+  ipcMain.handle('ext:import', (_e, payload) => {
+    const p = payload || {};
+    if (typeof p.sourcePath !== 'string' || !p.sourcePath) return { ok: false, error: 'bad path' };
+    return extensionsManager.importFromPath(p.sourcePath, typeof p.chromeId === 'string' ? p.chromeId : null);
   });
   ipcMain.handle('ext:install-folder', () => extensionsManager.installFromFolderDialog());
   ipcMain.handle('ext:toggle', (_e, { id, enabled }) => extensionsManager.toggle(String(id), !!enabled));

@@ -789,3 +789,70 @@
   font-size: 11px;
   color: var(--text-dim);
 }
+
+/* ============================================
+   Motion polish — smoother, springier UI
+   ============================================ */
+
+.tabstrip-bar,
+.navigation-bar,
+.bookmarks-bar,
+.browser-body {
+  transition: background-color 0.3s var(--ease-smooth);
+}
+
+.tab-item {
+  transition: background 0.18s var(--ease-smooth), color 0.18s var(--ease-smooth),
+              border-color 0.18s var(--ease-smooth), box-shadow 0.18s var(--ease-smooth),
+              transform 0.12s var(--ease-smooth);
+}
+.tab-item:active { transform: scale(0.97); }
+
+.nav-btn,
+.win-btn,
+.btn-new-tab,
+.logo-btn,
+.menu-item,
+.popup-btn,
+.bookmark-item {
+  transition: background 0.16s var(--ease-smooth), color 0.16s var(--ease-smooth),
+              border-color 0.16s var(--ease-smooth), box-shadow 0.16s var(--ease-smooth),
+              transform 0.16s var(--ease-smooth);
+}
+.nav-btn:active { transform: scale(0.9); }
+.win-btn:active { transform: scale(0.86); }
+.btn-new-tab:active { transform: scale(0.9); }
+.menu-item:hover { transform: translateX(2px); }
+
+/* Popups: soft spring entrance */
+.popup-panel {
+  transform-origin: top right;
+  animation: popupIn 0.24s var(--ease-spring);
+}
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Command palette */
+.command-palette-overlay { animation: overlayFade 0.18s var(--ease-smooth); }
+.command-palette-modal { animation: paletteIn 0.26s var(--ease-spring); }
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes paletteIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Omnibox focus glow */
+.omnibox-wrapper {
+  transition: box-shadow 0.22s var(--ease-smooth), background 0.22s var(--ease-smooth);
+}
+
+/* Page dimmer behind popups */
+#page-dimmer { transition: opacity 0.25s var(--ease-smooth); }
+
+/* Vertical sidebar reveal */
+.vertical-tabs-sidebar { transition: width 0.25s var(--ease-smooth), opacity 0.2s var(--ease-smooth); }
