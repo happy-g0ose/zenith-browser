@@ -102,6 +102,7 @@
       gap: 10px;
     }
     .tile {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -121,10 +122,28 @@
       display: flex; align-items: center; justify-content: center;
       color: #fff; font-size: 15px; font-weight: 700;
     }
+    .tile .t-chip img { width: 22px; height: 22px; border-radius: 5px; object-fit: contain; }
     .tile .t-name {
       font-size: 11.5px; color: var(--nt-muted);
       max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .tile .t-x {
+      position: absolute;
+      top: 5px; right: 5px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.55);
+      color: var(--nt-muted);
+      font-size: 10px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .tile .t-x:hover { color: #fff; background: rgba(248, 81, 73, 0.7); }
+    .tile:hover .t-x { display: flex; }
 
     .nt-footer { display: flex; gap: 14px; font-size: 12px; color: var(--nt-muted); }
     .nt-footer span { display: flex; align-items: center; gap: 5px; }

@@ -467,6 +467,15 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.bm-chip img { width: 15px; height: 15px; border-radius: 3px; object-fit: contain; }
+.bm-chip.bm-fav { background: transparent; }
+.tab-favicon .fav-img {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  object-fit: contain;
 }
 .bm-folder-chip { color: #c9d1d9; }
 .bm-title { overflow: hidden; text-overflow: ellipsis; max-width: 140px; }

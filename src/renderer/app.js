@@ -295,7 +295,11 @@ function renderBookmarks(bm) {
     } else {
       const el = document.createElement('button');
       el.className = 'bookmark-item';
-      el.innerHTML = `${bookmarkChip(item)}<span class="bm-title">${escapeHtml(item.title || item.url)}</span>`;
+      const cachedFav = faviconMem.get(item.url);
+      const iconHtml = cachedFav
+        ? `<span class="bm-chip bm-fav"><img src="${cachedFav}"></span>`
+        : bookmarkChip(item);
+      el.innerHTML = `${iconHtml}<span class="bm-title">${escapeHtml(item.title || item.url)}</span>`;
       el.title = item.url;
       el.onclick = () => {
         if (activeTabId && window.aegisAPI) window.aegisAPI.navigateTab(activeTabId, item.url);
@@ -308,6 +312,12 @@ function renderBookmarks(bm) {
         }
       };
       bookmarksBar.appendChild(el);
+      if (!cachedFav) {
+        requestFavicon(item.url, activeTabId, dataUrl => {
+          el.querySelector('.bm-chip').innerHTML = `<img src="${dataUrl}">`;
+          el.querySelector('.bm-chip').classList.add('bm-fav');
+        });
+      }
     }
   });
 
@@ -395,8 +405,12 @@ function renderTabList(container) {
     const sig = `${title}|${tab.url}|${favColor}|${uiShowFavicons}`;
     if (el.dataset.sig !== sig) {
       el.dataset.sig = sig;
+      const cachedFav = faviconMem.get(tab.url);
+      const faviconHtml = cachedFav
+        ? `<img src="${cachedFav}" class="fav-img">`
+        : `<span class="fav-dot" style="background: ${favColor}"></span>`;
       el.innerHTML = `
-        ${uiShowFavicons ? `<span class="tab-favicon"><span class="fav-dot" style="background: ${favColor}"></span></span>` : ''}
+        ${uiShowFavicons ? `<span class="tab-favicon">${faviconHtml}</span>` : ''}
         <span class="tab-title" title="${escapeHtmlAttr(tab.url)}">${escapeHtmlAttr(title)}</span>
         <button class="tab-close-btn">&times;</button>
       `;
@@ -407,6 +421,15 @@ function renderTabList(container) {
           if (window.aegisAPI) window.aegisAPI.closeTab(el.dataset.id);
         });
       }
+    }
+
+    if (uiShowFavicons && !faviconMem.has(tab.url)) {
+      requestFavicon(tab.url, tab.id, dataUrl => {
+        if (!dataUrl) return;
+        document.querySelectorAll(`.tab-item[data-id="${tab.id}"] .tab-favicon`).forEach(sp => {
+          sp.innerHTML = `<img src="${dataUrl}" class="fav-img">`;
+        });
+      });
     }
 
     // Keep DOM order in sync with the tabs array
@@ -424,6 +447,23 @@ function renderTabList(container) {
 
 function escapeHtmlAttr(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---- Favicons (fetched through the tab's own session, cached in main) ----
+const faviconMem = new Map(); // url -> dataURL | '' (failed) | absent = pending
+
+function requestFavicon(url, tabId, cb) {
+  if (!url || url.startsWith('about:') || url.startsWith('file:')) return;
+  if (faviconMem.has(url)) {
+    const v = faviconMem.get(url);
+    if (v) cb(v);
+    return;
+  }
+  faviconMem.set(url, '');
+  window.aegisAPI.getFavicon(url, tabId || null).then(d => {
+    faviconMem.set(url, d || '');
+    if (d) cb(d);
+  }).catch(() => {});
 }
 
 function toggleVerticalTabs() {

@@ -572,6 +572,11 @@ class ConfigStore {
     this.history = [];
     this.writeJSON(this.historyFile, this.history);
   }
+
+  removeHistoryItem(url) {
+    this.history = this.history.filter(h => h.url !== url);
+    this.writeJSONAsync(this.historyFile, this.history);
+  }
 }
 
 module.exports = new ConfigStore();

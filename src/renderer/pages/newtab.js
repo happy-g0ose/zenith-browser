@@ -72,46 +72,80 @@ async function setupSearch() {
 }
 
 // ---- Quick tiles from history + bookmarks ----
+const tileFavCache = new Map();
+
 async function renderTiles() {
   const tiles = $('tiles');
   if (!window.aegisAPI) return;
-  let seen = new Set();
+  const seenHosts = new Set();
   const items = [];
 
   try {
     const history = (await window.aegisAPI.getHistory()) || [];
     for (const h of history) {
       if (items.length >= 8) break;
-      if (!h.url || seen.has(h.url) || h.url.startsWith('about:')) continue;
-      seen.add(h.url);
-      items.push({ title: h.title || h.url, url: h.url });
+      if (!h.url || h.url.startsWith('about:')) continue;
+      let host;
+      try { host = new URL(h.url).hostname; } catch (e) { continue; }
+      if (seenHosts.has(host)) continue;
+      seenHosts.add(host);
+      items.push({ title: h.title || h.url, url: h.url, host });
     }
   } catch (e) {}
   try {
     const bm = (await window.aegisAPI.getBookmarks()) || [];
     for (const b of bm) {
       if (items.length >= 8) break;
-      if (!b.url || seen.has(b.url) || b.children) continue;
-      seen.add(b.url);
-      items.push({ title: b.title || b.url, url: b.url });
+      if (!b.url || b.children) continue;
+      let host;
+      try { host = new URL(b.url).hostname; } catch (e) { continue; }
+      if (seenHosts.has(host)) continue;
+      seenHosts.add(host);
+      items.push({ title: b.title || b.url, url: b.url, host });
     }
   } catch (e) {}
 
   tiles.innerHTML = items.map(it => {
-    const host = it.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
-    const letter = (it.title || host || '?')[0].toUpperCase();
+    const letter = (it.title || it.host || '?')[0].toUpperCase();
     const colors = ['#de5833', '#5b8def', '#3ecf8e', '#d29922', '#8b5cf6', '#06b6d4', '#ec4899', '#f85149'];
     let hash = 0;
     for (let i = 0; i < it.url.length; i++) hash = (hash * 31 + it.url.charCodeAt(i)) >>> 0;
+    const cached = tileFavCache.get(it.host);
+    const chipInner = cached
+      ? `<img src="${cached}">`
+      : `<span>${esc(letter)}</span>`;
     return `
-      <div class="tile" data-url="${esc(it.url)}" title="${esc(it.url)}">
-        <span class="t-chip" style="background:${colors[hash % colors.length]}">${esc(letter)}</span>
-        <span class="t-name">${esc(host)}</span>
+      <div class="tile" data-url="${esc(it.url)}" data-host="${esc(it.host)}" title="${esc(it.url)}">
+        <span class="t-chip" style="background:${colors[hash % colors.length]}">${chipInner}</span>
+        <span class="t-name">${esc(it.host)}</span>
+        <button class="t-x" title="Убрать плитку">✕</button>
       </div>`;
   }).join('');
 
   tiles.querySelectorAll('.tile').forEach(t => {
     t.onclick = () => go(t.dataset.url);
+    const x = t.querySelector('.t-x');
+    x.onclick = async (e) => {
+      e.stopPropagation();
+      if (window.aegisAPI && typeof window.aegisAPI.removeHistory === 'function') {
+        await window.aegisAPI.removeHistory(t.dataset.url);
+        renderTiles();
+      }
+    };
+    // Real favicon via the tab's own session
+    const host = t.dataset.host;
+    if (!tileFavCache.has(host)) {
+      const url = t.dataset.url;
+      window.aegisAPI.getFavicon(url, null).then(d => {
+        if (!d) return;
+        tileFavCache.set(host, d);
+        const chip = t.querySelector('.t-chip');
+        if (chip) chip.innerHTML = `<img src="${d}">`;
+      }).catch(() => {});
+    } else if (tileFavCache.get(host)) {
+      const chip = t.querySelector('.t-chip');
+      chip.innerHTML = `<img src="${tileFavCache.get(host)}">`;
+    }
   });
 }
 

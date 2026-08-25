@@ -49,6 +49,8 @@ if (isInternalPage) {
     addItemToFolder: (folderId, b) => ipcRenderer.invoke('bookmarks:add-to-folder', { folderId, item: b }),
     getHistory: () => ipcRenderer.invoke('history:get'),
     clearHistory: () => ipcRenderer.invoke('history:clear'),
+    removeHistory: (url) => ipcRenderer.invoke('history:remove', url),
+    getFavicon: (url, tabId) => ipcRenderer.invoke('favicon:get', { url, tabId }),
     onBookmarksChanged: (callback) => ipcRenderer.on('bookmarks:changed', () => callback()),
 
     // Tabs Actions

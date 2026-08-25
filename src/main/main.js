@@ -56,6 +56,64 @@ let activeTabId = null;
 let tabCounter = 0;
 const closedTabs = [];
 
+// ---- Favicons: fetched through the requesting tab's session (honors its
+// proxy/Tor identity), cached on disk, served as data URLs ----
+const crypto = require('crypto');
+const faviconInflight = new Map();
+
+function faviconCacheFile(url) {
+  let host = url;
+  try { host = new URL(url).origin; } catch (e) {}
+  const hash = crypto.createHash('sha1').update(host).digest('hex').slice(0, 20);
+  return path.join(app.getPath('userData'), 'favicons', hash + '.img');
+}
+
+function toDataURL(buf) {
+  return 'data:image/png;base64,' + buf.toString('base64');
+}
+
+async function fetchFavicon(url, wc) {
+  let origin;
+  try { origin = new URL(url).origin; } catch (e) { return null; }
+  if (!origin || origin === 'null') return null;
+
+  const cacheFile = faviconCacheFile(origin);
+  if (fs.existsSync(cacheFile)) {
+    try { return toDataURL(fs.readFileSync(cacheFile)); } catch (e) {}
+  }
+
+  if (faviconInflight.has(origin)) return faviconInflight.get(origin);
+  const promise = (async () => {
+    try {
+      const ses = wc && wc.session ? wc.session : undefined;
+      const candidates = [
+        origin + '/favicon.ico',
+        'https://www.google.com/s2/favicons?domain=' + origin.replace(/^https?:\/\//, '') + '&sz=64'
+      ];
+      for (const candidate of candidates) {
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 6000);
+          const res = await (ses ? ses.fetch(candidate, { signal: ctrl.signal }) : net.fetch(candidate, { signal: ctrl.signal }));
+          clearTimeout(timer);
+          if (!res.ok) continue;
+          const buf = Buffer.from(await res.arrayBuffer());
+          if (buf.length > 120 && buf.length < 500000) {
+            fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+            fs.writeFileSync(cacheFile, buf);
+            return toDataURL(buf);
+          }
+        } catch (e) {}
+      }
+    } finally {
+      faviconInflight.delete(origin);
+    }
+    return null;
+  })();
+  faviconInflight.set(origin, promise);
+  return promise;
+}
+
 // ---- Downloads registry ----
 const downloads = new Map();
 let downloadSeq = 0;
@@ -750,6 +808,17 @@ function setupIPCHandlers() {
   ipcMain.handle('wallpaper:set-preset', (_e, value) => {
     configStore.setPref('ui.newtab.wallpaper', String(value));
     mainWindow.webContents.send('wallpaper:changed', String(value));
+  });
+
+  // Favicons (fetched via the requesting tab's session; no tabId = active tab)
+  ipcMain.handle('favicon:get', (_e, { url, tabId }) => {
+    const t = tabId ? tabs.find(x => x.id === tabId) : tabs.find(x => x.id === activeTabId);
+    const wc = t && t.view ? t.view.webContents : null;
+    return fetchFavicon(url, wc);
+  });
+
+  ipcMain.handle('history:remove', (_e, url) => {
+    configStore.removeHistoryItem(url);
   });
 
   // Window & Overlay Controls
