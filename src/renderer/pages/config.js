@@ -40,6 +40,8 @@ const prefMeta = {
   'ui.usercontent.enabled': { ru: 'Поддержка userContent.css', en: 'Enable userContent.css', desc_ru: 'Внедряет кастомный CSS во все открываемые веб-страницы', desc_en: 'Injects user stylesheet into all visited web pages' },
   'ui.search.default_engine': { ru: 'Поисковая система по умолчанию', en: 'Default Search Engine', desc_ru: 'duckduckgo, brave, searx или google', desc_en: 'Search provider for omnibox query submission' },
   'ui.animations.enabled': { ru: 'Анимации интерфейса', en: 'UI Animations', desc_ru: 'Плавные переходы меню и вкладок', desc_en: 'Smooth transitions for popups and tabs' },
+  'ui.sites_theme': { ru: 'Тема сайтов (prefers-color-scheme)', en: 'Sites Color Scheme', desc_ru: 'system / dark / light — сайты с поддержкой тёмной темы (YouTube и др.) подстроятся автоматически', desc_en: 'system / dark / light - dark-mode-aware sites adapt automatically' },
+  'ui.force_dark': { ru: 'Принудительная тёмная тема (Force Dark)', en: 'Force Dark Mode', desc_ru: 'Авто-затемнение ЛЮБЫХ сайтов, включая Google. Требуется перезапуск браузера', desc_en: 'Auto-darkens ALL sites including Google. Requires browser restart' },
 
   'network.doh.enabled': { ru: 'Защищённый DNS over HTTPS (DoH)', en: 'DNS over HTTPS (DoH)', desc_ru: 'Шифрует все DNS-запросы для защиты от перехвата провайдером', desc_en: 'Encrypts all domain resolution queries via HTTPS' },
   'network.doh.provider': { ru: 'Сервер DoH', en: 'DoH Resolver URL', desc_ru: 'Адрес сервера DoH (Cloudflare, Quad9, Google)', desc_en: 'Encrypted DNS resolver endpoint endpoint' },

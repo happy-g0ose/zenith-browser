@@ -1,4 +1,4 @@
-const { app, BrowserWindow, WebContentsView, ipcMain, Menu, MenuItem, protocol, net, dialog, shell } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, Menu, MenuItem, protocol, net, dialog, shell, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -38,6 +38,15 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 const configStore = require('./config-store');
+
+// Chromium Force Dark: auto-darkens sites that have no dark mode (Google, etc.)
+// Must be set before app is ready - requires restart to take effect
+if (configStore.getPref('ui.force_dark', false)) {
+  app.commandLine.appendSwitch('enable-features', 'WebContentsForceDark');
+}
+
+// prefers-color-scheme for sites: 'system' | 'dark' | 'light' (live)
+nativeTheme.themeSource = configStore.getPref('ui.sites_theme', 'system');
 const AdblockShield = require('./adblock-shield');
 const TorManager = require('./tor-manager');
 const ExtensionsManager = require('./extensions-manager');
@@ -617,6 +626,10 @@ function setupIPCHandlers() {
     }
     if (key === 'ui.custom.overrides') {
       mainWindow.webContents.send('custom:changed', val);
+    }
+    if (key === 'ui.sites_theme') {
+      const mode = ['system', 'dark', 'light'].includes(val) ? val : 'system';
+      nativeTheme.themeSource = mode;
     }
   });
   ipcMain.handle('prefs:reset', (_e, key) => configStore.resetPref(key));

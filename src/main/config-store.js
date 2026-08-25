@@ -64,6 +64,8 @@ class ConfigStore {
       'ui.usercontent.enabled': true,
       'ui.search.default_engine': 'duckduckgo', // 'duckduckgo', 'searx', 'brave', 'google'
       'ui.animations.enabled': true,
+      'ui.sites_theme': 'system', // 'system' | 'dark' | 'light' - prefers-color-scheme для сайтов
+      'ui.force_dark': false, // Chromium Force Dark: авто-затемнение любых сайтов (нужен перезапуск)
       'ui.custom.overrides': {}, // { '--bg-tabstrip': '#0a0c10', ... } - smart customizer
 
       // Network & DNS
