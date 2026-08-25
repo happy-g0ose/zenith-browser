@@ -84,10 +84,12 @@ class AdblockShield {
     this.ruleSets = Object.entries(RULE_SETS).map(([category, patterns]) => ({
       category,
       prefKey: 'privacy.shield.block_' + category,
-      regexes: patterns.map(pattern => new RegExp(
-        pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*'),
+      // One combined alternation regex per category: 3 regex tests per request
+      // instead of running dozens of separate patterns
+      regex: new RegExp(
+        patterns.map(p => p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')).join('|'),
         'i'
-      ))
+      )
     }));
   }
 
@@ -109,12 +111,10 @@ class AdblockShield {
 
       for (const ruleSet of this.ruleSets) {
         if (!this._categoryEnabled(ruleSet)) continue;
-        for (const regex of ruleSet.regexes) {
-          if (regex.test(url)) {
-            this.blockedCount++;
-            this.blockedDomains.add(parsed.hostname);
-            return true;
-          }
+        if (ruleSet.regex.test(url)) {
+          this.blockedCount++;
+          if (this.blockedDomains.size < 1000) this.blockedDomains.add(parsed.hostname);
+          return true;
         }
       }
     } catch (e) {

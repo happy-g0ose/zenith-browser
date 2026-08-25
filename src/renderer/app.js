@@ -58,7 +58,7 @@ async function init() {
     window.aegisAPI.onShieldUpdated(() => {});
     window.aegisAPI.onCommandPaletteToggle(() => toggleCommandPalette());
     window.aegisAPI.onFocusOmnibox(() => { urlInput.focus(); urlInput.select(); });
-    window.aegisAPI.onThemeChanged(t => document.body.setAttribute('data-theme', t));
+    window.aegisAPI.onThemeChanged(t => applyThemeAttr(t));
     if (typeof window.aegisAPI.onEngineChanged === 'function') {
       window.aegisAPI.onEngineChanged(engine => applyEngineUI(engine));
     }
@@ -328,14 +328,35 @@ function renderTabs() {
   renderTabList(tabListVertical);
 }
 
+// Keyed diff renderer: tabs update IN PLACE instead of rebuilding the whole
+// list on every navigation (the old innerHTML wipe re-created every node and
+// re-ran layout dozens of times per page load)
 function renderTabList(container) {
   if (!container) return;
-  container.innerHTML = '';
+  const els = container._tabEls || (container._tabEls = new Map());
+  const seen = new Set();
 
-  tabs.forEach(tab => {
+  tabs.forEach((tab, index) => {
+    seen.add(tab.id);
+    let el = els.get(tab.id);
+    const isNew = !el;
+
+    if (isNew) {
+      el = document.createElement('div');
+      els.set(tab.id, el);
+      el.addEventListener('click', e => {
+        if (e.target.classList.contains('tab-close-btn')) return;
+        if (window.aegisAPI) window.aegisAPI.switchTab(el.dataset.id);
+      });
+      el.addEventListener('auxclick', e => {
+        if (e.button === 1 && window.aegisAPI) window.aegisAPI.closeTab(el.dataset.id);
+      });
+    }
+
     const active = tab.id === activeTabId;
-    const el = document.createElement('div');
-    el.className = `tab-item${active ? ' active' : ''}${tab.incognito ? ' incognito' : ''}`;
+    const className = `tab-item${active ? ' active' : ''}${tab.incognito ? ' incognito' : ''}${isNew ? ' tab-enter' : ''}`;
+    if (el.className !== className) el.className = className;
+    if (el.dataset.id !== tab.id) el.dataset.id = tab.id;
 
     let title = tab.title || tab.url;
     if (tab.url === 'about:newtab' || (tab.incognito && !tab.title)) title = 'Инкогнито';
@@ -349,28 +370,38 @@ function renderTabList(container) {
     else if (tab.url.startsWith('about:profiles')) favColor = '#3ecf8e';
     else if (tab.url.startsWith('about:newtab')) favColor = '#5b8def';
 
-    el.innerHTML = `
-      ${uiShowFavicons ? `<span class="tab-favicon"><span class="fav-dot" style="background: ${favColor}"></span></span>` : ''}
-      <span class="tab-title" title="${tab.url}">${title}</span>
-      <button class="tab-close-btn">&times;</button>
-    `;
+    const sig = `${title}|${tab.url}|${favColor}|${uiShowFavicons}`;
+    if (el.dataset.sig !== sig) {
+      el.dataset.sig = sig;
+      el.innerHTML = `
+        ${uiShowFavicons ? `<span class="tab-favicon"><span class="fav-dot" style="background: ${favColor}"></span></span>` : ''}
+        <span class="tab-title" title="${escapeHtmlAttr(tab.url)}">${escapeHtmlAttr(title)}</span>
+        <button class="tab-close-btn">&times;</button>
+      `;
+      const closeBtn = el.querySelector('.tab-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (window.aegisAPI) window.aegisAPI.closeTab(el.dataset.id);
+        });
+      }
+    }
 
-    el.onclick = e => {
-      if (e.target.classList.contains('tab-close-btn')) return;
-      if (window.aegisAPI) window.aegisAPI.switchTab(tab.id);
-    };
-
-    el.onauxclick = e => {
-      if (e.button === 1 && window.aegisAPI) window.aegisAPI.closeTab(tab.id);
-    };
-
-    el.querySelector('.tab-close-btn').onclick = e => {
-      e.stopPropagation();
-      if (window.aegisAPI) window.aegisAPI.closeTab(tab.id);
-    };
-
-    container.appendChild(el);
+    // Keep DOM order in sync with the tabs array
+    const expected = container.children[index];
+    if (expected !== el) container.insertBefore(el, expected || null);
   });
+
+  for (const [id, el] of [...els]) {
+    if (!seen.has(id)) {
+      el.remove();
+      els.delete(id);
+    }
+  }
+}
+
+function escapeHtmlAttr(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function toggleVerticalTabs() {
@@ -408,8 +439,16 @@ function toggleCommandPalette(force = null) {
   window.aegisAPI.openPopup('palette');
 }
 
-function setTheme(theme) {
+function applyThemeAttr(theme) {
+  // Brief crossfade window so theme switches blend instead of snapping
+  document.body.classList.add('theme-fade');
   document.body.setAttribute('data-theme', theme);
+  clearTimeout(applyThemeAttr._t);
+  applyThemeAttr._t = setTimeout(() => document.body.classList.remove('theme-fade'), 380);
+}
+
+function setTheme(theme) {
+  applyThemeAttr(theme);
   if (window.aegisAPI) window.aegisAPI.setPref('ui.theme', theme);
 }
 

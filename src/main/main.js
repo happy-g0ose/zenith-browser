@@ -219,7 +219,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
 
   view.webContents.on('did-start-navigation', (_e, url) => {
     tabData.url = getDisplayUrl(url);
-    notifyTabsUpdated();
+    notifyTabsUpdatedSoon();
     if (tabId === activeTabId) {
       notifyActiveTabChanged();
     }
@@ -227,7 +227,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
 
   view.webContents.on('page-title-updated', (_e, title) => {
     tabData.title = title;
-    notifyTabsUpdated();
+    notifyTabsUpdatedSoon();
   });
 
   view.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
@@ -236,7 +236,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
     tabData.lastFailedUrl = validatedURL || '';
     tabData.title = 'Страница не загрузилась';
     view.webContents.loadURL(getErrorPageUrl(validatedURL, errorDescription, errorCode));
-    notifyTabsUpdated();
+    notifyTabsUpdatedSoon();
   });
 
   view.webContents.on('did-finish-load', () => {
@@ -252,7 +252,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
         configStore.addHistory({ title: tabData.title, url: tabData.url });
       }
     }
-    notifyTabsUpdated();
+    notifyTabsUpdatedSoon();
     if (tabId === activeTabId) {
       notifyActiveTabChanged();
     }
@@ -356,10 +356,21 @@ function notifyTabsUpdated() {
   scheduleSessionSave();
 }
 
+// did-start-navigation fires on every frame navigation: batch the renderer
+// updates (and the disk write) so the shell is not flooded with IPC churn
+let tabsNotifyTimer = null;
+function notifyTabsUpdatedSoon() {
+  clearTimeout(tabsNotifyTimer);
+  tabsNotifyTimer = setTimeout(notifyTabsUpdated, 120);
+}
+
 // Session persistence (restore tabs after restart)
 let sessionSaveTimer = null;
 function saveSessionState() {
-  configStore.setPref('browser.last_session', tabs.filter(t => !t.incognito).map(t => ({ url: t.url, profileId: t.profileId })));
+  // Async write: the session list changes on every navigation, so never block
+  // the main process on disk I/O here
+  configStore.prefs['browser.last_session'] = tabs.filter(t => !t.incognito).map(t => ({ url: t.url, profileId: t.profileId }));
+  configStore.writeJSONAsync(configStore.configFile, configStore.prefs);
 }
 
 function scheduleSessionSave() {

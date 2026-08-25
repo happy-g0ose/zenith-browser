@@ -292,6 +292,13 @@ class ConfigStore {
     }
   }
 
+  // Non-blocking variant for high-frequency stores (session state)
+  writeJSONAsync(filePath, data) {
+    fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8', (err) => {
+      if (err) console.error(`Failed to write ${filePath}:`, err.message);
+    });
+  }
+
   readText(filePath, defaultValue = '') {
     try {
       if (fs.existsSync(filePath)) {
@@ -552,10 +559,16 @@ class ConfigStore {
     if (this.history.length > 500) {
       this.history = this.history.slice(0, 500);
     }
-    this.writeJSON(this.historyFile, this.history);
+    // History changes on every page load: coalesce writes instead of
+    // rewriting the whole file synchronously each time
+    clearTimeout(this._historyTimer);
+    this._historyTimer = setTimeout(() => {
+      this.writeJSONAsync(this.historyFile, this.history);
+    }, 900);
   }
 
   clearHistory() {
+    clearTimeout(this._historyTimer);
     this.history = [];
     this.writeJSON(this.historyFile, this.history);
   }
