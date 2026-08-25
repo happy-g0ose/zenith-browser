@@ -383,12 +383,19 @@ function notifyActiveTabChanged() {
   const canBack = wc.navigationHistory ? wc.navigationHistory.canGoBack() : (wc.canGoBack ? wc.canGoBack() : false);
   const canFwd = wc.navigationHistory ? wc.navigationHistory.canGoForward() : (wc.canGoForward ? wc.canGoForward() : false);
 
+  // Icons of extensions loaded into this tab's session
+  let extIcons = [];
+  try {
+    extIcons = extensionsManager.getLoadedMeta(wc.session);
+  } catch (e) {}
+
   mainWindow.webContents.send('tabs:active-changed', {
     id: currentTab.id,
     title: currentTab.title,
     url: currentTab.url,
     canGoBack: canBack,
-    canGoForward: canFwd
+    canGoForward: canFwd,
+    extIcons
   });
 
   // Also send shield stats

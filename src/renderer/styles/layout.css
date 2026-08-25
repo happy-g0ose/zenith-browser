@@ -339,23 +339,46 @@
 }
 
 /* Quick search engine switcher (inside omnibox) */
+/* Loaded extensions strip in the nav bar */
+.ext-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.ext-strip:empty { display: none; }
+.ext-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.14s var(--ease-smooth), transform 0.14s var(--ease-smooth);
+}
+.ext-icon:hover { background: rgba(255, 255, 255, 0.08); transform: scale(1.08); }
+.ext-icon img { width: 16px; height: 16px; object-fit: contain; }
+.ext-icon .ext-fallback {
+  width: 16px; height: 16px; border-radius: 4px;
+  background: var(--accent-muted); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+}
+
 .engine-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--engine-color, #de5833);
-  transition: transform 0.14s var(--ease-smooth), box-shadow 0.14s var(--ease-smooth);
+  transition: transform 0.14s var(--ease-smooth), background 0.14s var(--ease-smooth);
 }
 .engine-btn:hover {
-  transform: scale(1.12);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.07);
 }
 .engine-btn:active { transform: scale(0.95); }
 

@@ -52,6 +52,7 @@ async function init() {
       }
       navBack.disabled = !data.canGoBack;
       navForward.disabled = !data.canGoForward;
+      renderExtStrip(data.extIcons || []);
       renderTabs();
     });
     window.aegisAPI.onShieldUpdated(() => {});
@@ -158,20 +159,19 @@ const ENGINE_META = {
   google:     { name: 'Google' }
 };
 
-function engineIconSvg(key, size = 12) {
+function engineIconSvg(key, size = 15) {
   const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || window.ENGINE_ICONS.google;
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="#fff" aria-hidden="true"><path d="${icon.path}"/></svg>`;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${icon.color}" aria-hidden="true"><path d="${icon.path}"/></svg>`;
 }
 
 function applyEngineUI(engineKey) {
   const key = ENGINE_META[engineKey] ? engineKey : 'duckduckgo';
   if (SEARCH_ENGINES[key]) searchEngine = SEARCH_ENGINES[key];
   const meta = ENGINE_META[key];
-  const icon = window.ENGINE_ICONS[key];
   const btn = $('engine-btn');
   if (btn) {
-    btn.innerHTML = engineIconSvg(key, 12);
-    btn.style.setProperty('--engine-color', icon.color);
+    btn.innerHTML = engineIconSvg(key, 15);
+    btn.style.removeProperty('--engine-color');
     btn.title = 'Поисковик: ' + meta.name;
   }
   urlInput.placeholder = `Поиск (${meta.name}) или ввод адреса...`;
@@ -183,6 +183,30 @@ function applyCustomOverrides(overrides) {
     if (!name.startsWith('--') || typeof value !== 'string') continue;
     document.documentElement.style.setProperty(name, value);
   }
+}
+
+function renderExtStrip(icons) {
+  const strip = $('ext-strip');
+  if (!strip) return;
+  strip.innerHTML = '';
+  icons.forEach(ext => {
+    const el = document.createElement('div');
+    el.className = 'ext-icon';
+    el.title = ext.name + (ext.version ? ' v' + ext.version : '') + ' — клик: управление расширениями';
+    if (ext.icon) {
+      el.innerHTML = `<img src="${ext.icon}" alt="">`;
+    } else {
+      el.innerHTML = `<span class="ext-fallback">${esc((ext.name || '?')[0].toUpperCase())}</span>`;
+    }
+    el.onclick = () => {
+      if (window.aegisAPI) window.aegisAPI.navigateCurrent('about:extensions');
+    };
+    strip.appendChild(el);
+  });
+}
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function createTab(url = 'about:newtab') {

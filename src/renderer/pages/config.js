@@ -139,13 +139,14 @@ async function loadPreferences() {
 function initEngineSegment() {
   const seg = document.getElementById('engine-seg');
   if (!seg) return;
-  // Swap letter dots for real brand icons
+  // Swap letter dots for real brand icons (brand-colored, no circle)
   if (window.ENGINE_ICONS) {
     seg.querySelectorAll('.engine-seg-btn').forEach(btn => {
       const icon = window.ENGINE_ICONS[btn.dataset.engine];
       const dot = btn.querySelector('.engine-dot');
       if (icon && dot) {
-        dot.innerHTML = `<svg viewBox="0 0 24 24" width="10" height="10" fill="#fff"><path d="${icon.path}"/></svg>`;
+        dot.style.background = 'transparent';
+        dot.innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" fill="${icon.color}"><path d="${icon.path}"/></svg>`;
       }
     });
   }

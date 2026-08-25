@@ -150,9 +150,7 @@ const ENGINE_LIST = [
 
 function engineDot(key) {
   const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || { color: '#888', path: '' };
-  return `<span style="width:20px;height:20px;border-radius:50%;background:${icon.color};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">
-    <svg viewBox="0 0 24 24" width="11" height="11" fill="#fff"><path d="${icon.path}"/></svg>
-  </span>`;
+  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="${icon.color}" style="flex-shrink:0"><path d="${icon.path}"/></svg>`;
 }
 
 async function renderEngine() {

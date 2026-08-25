@@ -258,6 +258,28 @@ class ExtensionsManager {
     }
   }
 
+  // Metadata (name + icon) for extensions currently loaded in a session,
+  // used by the nav-bar extensions strip
+  getLoadedMeta(ses) {
+    const handles = this.attached.get(ses);
+    if (!handles || !handles.size) return [];
+    const out = [];
+    for (const [dirName] of handles) {
+      try {
+        const dir = path.join(this.dir, dirName);
+        const mf = readManifest(dir);
+        if (!mf) continue;
+        out.push({
+          id: dirName,
+          name: resolveLocalizedName(mf, dir),
+          version: mf.version || '',
+          icon: pickIcon(dir, mf)
+        });
+      } catch (e) {}
+    }
+    return out;
+  }
+
   attachAllSessions() {
     for (const ses of this.attached.keys()) {
       this.attachToSession(ses);
