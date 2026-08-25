@@ -125,6 +125,12 @@ function selectPart(varName) {
   refreshEditorFields();
 }
 
+function setOverride(varName, hex) {
+  overrides = { ...overrides, [varName]: hex };
+  applyLocalOverrides();
+  scheduleSave();
+}
+
 function scheduleSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {

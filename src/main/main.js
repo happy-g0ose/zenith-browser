@@ -333,6 +333,8 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
       sandbox: true
     }
   });
+  // Dark base color: prevents the white flash before the page paints
+  view.setBackgroundColor('#0b0d11');
 
   sessionManager.attachUserContentCSS(view.webContents);
 
