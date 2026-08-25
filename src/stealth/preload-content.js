@@ -62,8 +62,13 @@ if (isInternalPage()) {
     getBookmarks: () => ipcRenderer.invoke('bookmarks:get'),
     addBookmark: (b) => ipcRenderer.invoke('bookmarks:add', b),
     removeBookmark: (url) => ipcRenderer.invoke('bookmarks:remove', url),
+    addFolder: (name) => ipcRenderer.invoke('bookmarks:add-folder', name),
+    addItemToFolder: (folderId, b) => ipcRenderer.invoke('bookmarks:add-to-folder', { folderId, item: b }),
     getHistory: () => ipcRenderer.invoke('history:get'),
     clearHistory: () => ipcRenderer.invoke('history:clear'),
+    removeHistory: (url) => ipcRenderer.invoke('history:remove', url),
+    getFavicon: (url, tabId) => ipcRenderer.invoke('favicon:get', { url, tabId }),
+    onBookmarksChanged: (callback) => ipcRenderer.on('bookmarks:changed', () => callback()),
 
     // Tab & Navigation controls
     createNewTab: (url, profileId) => ipcRenderer.invoke('tabs:create', { url, profileId }),
@@ -76,6 +81,32 @@ if (isInternalPage()) {
     navigateTab: (tabId, url) => ipcRenderer.invoke('tabs:navigate', { tabId, url }),
     navigateCurrent: (url) => ipcRenderer.invoke('tabs:navigate-current', url),
     toggleDevTools: (tabId) => ipcRenderer.invoke('tabs:devtools', tabId),
+    reorderTab: (id, beforeId) => ipcRenderer.invoke('tabs:reorder', { id, beforeId }),
+
+    // Zoom
+    zoomIn: () => ipcRenderer.send('zoom:in'),
+    zoomOut: () => ipcRenderer.send('zoom:out'),
+    zoomReset: () => ipcRenderer.send('zoom:reset'),
+
+    // Find in page
+    findStart: (text, forward, findNext) => ipcRenderer.invoke('find:start', { text, forward, findNext }),
+    findStop: () => ipcRenderer.invoke('find:stop'),
+    onFindResults: (cb) => ipcRenderer.on('find:results', (_e, r) => cb(r)),
+    onFindRequest: (cb) => ipcRenderer.on('action:find', () => cb()),
+
+    // Downloads
+    getDownloads: () => ipcRenderer.invoke('downloads:get'),
+    openDownload: (id) => ipcRenderer.invoke('downloads:open', id),
+    showDownloadInFolder: (id) => ipcRenderer.invoke('downloads:show', id),
+    onDownloadsUpdated: (cb) => ipcRenderer.on('downloads:updated', (_e, list) => cb(list)),
+
+    // New tab wallpaper
+    setWallpaperImage: () => ipcRenderer.invoke('wallpaper:set-image'),
+    setWallpaperPreset: (value) => ipcRenderer.invoke('wallpaper:set-preset', value),
+    onWallpaperChanged: (cb) => ipcRenderer.on('wallpaper:changed', (_e, v) => cb(v)),
+
+    // Favicons
+    getFavicon: (url, tabId) => ipcRenderer.invoke('favicon:get', { url, tabId }),
 
     // Window & Overlay control
     minimizeWindow: () => ipcRenderer.send('window:minimize'),
@@ -98,6 +129,8 @@ if (isInternalPage()) {
     onCommandPaletteToggle: (callback) => ipcRenderer.on('action:toggle-palette', (_e) => callback()),
     onFocusOmnibox: (callback) => ipcRenderer.on('action:focus-omnibox', (_e) => callback()),
     onPageDarken: (callback) => ipcRenderer.on('overlay:page-darken', (_e, dataUrl) => callback(dataUrl)),
-    onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme))
+    onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme)),
+    onEngineChanged: (callback) => ipcRenderer.on('engine:changed', (_e, engine) => callback(engine)),
+    onCustomChanged: (callback) => ipcRenderer.on('custom:changed', (_e, overrides) => callback(overrides))
   };
 }
