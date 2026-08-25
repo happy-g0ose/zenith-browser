@@ -182,12 +182,28 @@ function applyEngineUI(engineKey) {
   urlInput.placeholder = `Поиск (${meta.name}) или ввод адреса...`;
 }
 
+const appliedCustomVars = new Set();
+
 function applyCustomOverrides(overrides) {
-  if (!overrides || typeof overrides !== 'object') return;
-  for (const [name, value] of Object.entries(overrides)) {
-    if (!name.startsWith('--') || typeof value !== 'string') continue;
-    document.documentElement.style.setProperty(name, value);
+  const next = new Set();
+  if (overrides && typeof overrides === 'object') {
+    for (const [name, value] of Object.entries(overrides)) {
+      if (!name.startsWith('--') || typeof value !== 'string') continue;
+      next.add(name);
+      // Set on BOTH html and body: themes.css defines vars on body[data-theme],
+      // so an html-only override would be shadowed by the body-level definition
+      document.documentElement.style.setProperty(name, value);
+      document.body.style.setProperty(name, value);
+    }
   }
+  for (const name of appliedCustomVars) {
+    if (!next.has(name)) {
+      document.documentElement.style.removeProperty(name);
+      document.body.style.removeProperty(name);
+    }
+  }
+  appliedCustomVars.clear();
+  next.forEach(n => appliedCustomVars.add(n));
 }
 
 function renderExtStrip(icons) {
