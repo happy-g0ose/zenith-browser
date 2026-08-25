@@ -136,9 +136,98 @@ if (window.aegisAPI) {
   else if (type === 'palette') renderPalette();
   else if (type === 'engine') renderEngine();
   else if (type === 'extlist') renderExtList();
+  else if (type === 'folder') renderFolder();
+  else if (type === 'bmadd') renderBmAdd();
   else renderMenu();
 } else {
   panel.innerHTML = '<div style="padding:20px;color:var(--text-muted)">Мост недоступен</div>';
+}
+
+// ---- Folder quick links ----
+function chipHtml(item) {
+  const letter = (item.title || item.url || '?').replace(/^https?:\/\/(www\.)?/, '')[0].toUpperCase();
+  const colors = ['#de5833', '#5b8def', '#3ecf8e', '#d29922', '#8b5cf6', '#06b6d4', '#ec4899', '#f85149'];
+  let hash = 0;
+  const s = String(item.url || '');
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return `<span class="bm-chip" style="width:18px;height:18px;background:${colors[hash % colors.length]}">${esc(letter)}</span>`;
+}
+
+async function renderFolder() {
+  const folderId = new URLSearchParams(location.search).get('id');
+  let folder = null;
+  try {
+    const all = await window.aegisAPI.getBookmarks();
+    const find = (list) => {
+      for (const b of list) {
+        if (b.id === folderId) return b;
+        if (b.children) { const f = find(b.children); if (f) return f; }
+      }
+      return null;
+    };
+    folder = find(all || []);
+  } catch (e) {}
+
+  const children = (folder && folder.children) || [];
+  panel.innerHTML = `
+    <div class="popup-header">
+      <span class="popup-title">${esc((folder && folder.name) || 'Папка')}</span>
+    </div>
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:2px">
+      ${children.length ? children.map(item => `
+        <button class="menu-item" data-url="${esc(item.url)}">
+          ${chipHtml(item)}
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title || item.url)}</span>
+        </button>`).join('') : '<div class="ext-empty">Папка пуста</div>'}
+    </div>`;
+
+  panel.querySelectorAll('[data-url]').forEach(btn => {
+    btn.onclick = () => go(btn.dataset.url);
+  });
+}
+
+// ---- Add bookmark / folder ----
+async function renderBmAdd() {
+  let bookmarks = [];
+  try { bookmarks = await window.aegisAPI.getBookmarks(); } catch (e) {}
+  const folders = (bookmarks || []).filter(b => b.children);
+
+  panel.innerHTML = `
+    <div class="popup-header"><span class="popup-title">Закладки</span></div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+      <div>
+        <div class="form-label">Новая ссылка</div>
+        <input class="form-input" id="bm-name" placeholder="Название" autocomplete="off">
+        <input class="form-input" id="bm-url" placeholder="https://..." autocomplete="off" spellcheck="false">
+        <select class="form-input" id="bm-folder">
+          <option value="">— В панель закладок —</option>
+          ${folders.map(f => `<option value="${esc(f.id)}">В папку: ${esc(f.name)}</option>`).join('')}
+        </select>
+        <button class="ext-manage" id="bm-add-link" style="margin-top:8px">Добавить ссылку</button>
+      </div>
+      <div>
+        <div class="form-label">Новая папка</div>
+        <input class="form-input" id="fd-name" placeholder="Название папки" autocomplete="off">
+        <button class="ext-manage" id="bm-add-folder" style="margin-top:8px">Создать папку</button>
+      </div>
+    </div>`;
+
+  $('bm-add-link').onclick = async () => {
+    const name = $('bm-name').value.trim();
+    let url = $('bm-url').value.trim();
+    if (!url) return;
+    if (!/^(https?:\/\/|about:)/i.test(url)) url = 'https://' + url;
+    const folderId = $('bm-folder').value;
+    if (folderId) await window.aegisAPI.addItemToFolder(folderId, { title: name || url, url });
+    else await window.aegisAPI.addBookmark({ title: name || url, url });
+    closeMe();
+  };
+  $('bm-add-folder').onclick = async () => {
+    const name = $('fd-name').value.trim();
+    if (!name) return;
+    await window.aegisAPI.addFolder(name);
+    closeMe();
+  };
 }
 
 // ---- Extensions list (Opera-style dropdown) ----

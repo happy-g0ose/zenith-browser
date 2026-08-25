@@ -455,6 +455,29 @@
   flex-shrink: 0;
 }
 
+/* Opera-style quick links: favicon chips + folders */
+.bm-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bm-folder-chip { color: #c9d1d9; }
+.bm-title { overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.bm-folder { font-weight: 500; }
+.bm-add {
+  opacity: 0.45;
+  padding: 2px 7px;
+}
+.bm-add:hover { opacity: 1; }
+.bm-plus { font-size: 13px; line-height: 1; color: var(--text); }
+
 /* ---- Floating Popup Panels (Shield & Browser Menu) ---- */
 .popup-panel {
   position: absolute;

@@ -65,6 +65,9 @@ async function init() {
     if (typeof window.aegisAPI.onCustomChanged === 'function') {
       window.aegisAPI.onCustomChanged(overrides => applyCustomOverrides(overrides));
     }
+    if (typeof window.aegisAPI.onBookmarksChanged === 'function') {
+      window.aegisAPI.onBookmarksChanged(() => loadBookmarks());
+    }
   }
 }
 
@@ -250,42 +253,73 @@ async function loadBookmarks() {
   if (window.aegisAPI) {
     try { bm = await window.aegisAPI.getBookmarks(); } catch (e) {}
   }
-  if (!bm || !bm.length) {
-    bm = [
-      { title: 'DuckDuckGo', url: 'https://duckduckgo.com' },
-      { title: 'Fingerprint Lab', url: 'about:fingerprint' },
-      { title: 'Settings', url: 'about:config' },
-      { title: 'Customizer', url: 'about:customizer' },
-      { title: 'Cover Your Tracks', url: 'https://coveryourtracks.eff.org' },
-      { title: 'IP Leak Test', url: 'https://ipleak.net' }
-    ];
-  }
-  renderBookmarks(bm);
+  renderBookmarks(Array.isArray(bm) ? bm : []);
+}
+
+function chipColor(url) {
+  const colors = ['#de5833', '#5b8def', '#3ecf8e', '#d29922', '#8b5cf6', '#06b6d4', '#ec4899', '#f85149'];
+  let hash = 0;
+  const s = String(url || '');
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return colors[hash % colors.length];
+}
+
+function bookmarkChip(item) {
+  const letter = (item.title || item.url || '?').replace(/^https?:\/\/(www\.)?/, '')[0].toUpperCase();
+  return `<span class="bm-chip" style="background:${chipColor(item.url)}">${escapeHtml(letter)}</span>`;
 }
 
 function renderBookmarks(bm) {
   if (!bookmarksBar) return;
   bookmarksBar.innerHTML = '';
+
   bm.forEach(item => {
-    const el = document.createElement('div');
-    el.className = 'bookmark-item';
-
-    let dotColor = '#6e7681';
-    if (item.url.includes('duckduckgo')) dotColor = '#de5833';
-    else if (item.url.startsWith('about:fingerprint')) dotColor = '#d29922';
-    else if (item.url.startsWith('about:config')) dotColor = '#6e7681';
-    else if (item.url.startsWith('about:customizer')) dotColor = '#5b8def';
-    else if (item.url.startsWith('about:profiles')) dotColor = '#3ecf8e';
-    else if (item.url.includes('ipleak')) dotColor = '#e06c75';
-    else if (item.url.includes('coveryourtracks') || item.url.includes('eff.org')) dotColor = '#98c379';
-
-    el.innerHTML = `<span class="bm-dot" style="background: ${dotColor}"></span>${item.title}`;
-    el.onclick = () => {
-      if (activeTabId && window.aegisAPI) window.aegisAPI.navigateTab(activeTabId, item.url);
-      else createTab(item.url);
-    };
-    bookmarksBar.appendChild(el);
+    if (item.children) {
+      const folder = document.createElement('button');
+      folder.className = 'bookmark-item bm-folder';
+      folder.innerHTML = `
+        <span class="bm-chip bm-folder-chip" style="background:#3a4356">
+          <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+        </span>
+        ${escapeHtml(item.name)}`;
+      folder.title = 'Папка: ' + (item.children.length ? item.children.length + ' ссылок' : 'пусто');
+      folder.onclick = (e) => {
+        e.stopPropagation();
+        if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+        const r = folder.getBoundingClientRect();
+        window.aegisAPI.openPopup('folder', { left: r.left, right: r.right, top: r.top, bottom: r.bottom }, { id: item.id, count: item.children.length });
+      };
+      bookmarksBar.appendChild(folder);
+    } else {
+      const el = document.createElement('button');
+      el.className = 'bookmark-item';
+      el.innerHTML = `${bookmarkChip(item)}<span class="bm-title">${escapeHtml(item.title || item.url)}</span>`;
+      el.title = item.url;
+      el.onclick = () => {
+        if (activeTabId && window.aegisAPI) window.aegisAPI.navigateTab(activeTabId, item.url);
+        else createTab(item.url);
+      };
+      el.oncontextmenu = (e) => {
+        e.preventDefault();
+        if (window.aegisAPI && confirm('Удалить закладку «' + (item.title || item.url) + '»?')) {
+          window.aegisAPI.removeBookmark(item.url);
+        }
+      };
+      bookmarksBar.appendChild(el);
+    }
   });
+
+  const add = document.createElement('button');
+  add.className = 'bookmark-item bm-add';
+  add.title = 'Добавить папку или ссылку';
+  add.innerHTML = `<span class="bm-plus">＋</span>`;
+  add.onclick = (e) => {
+    e.stopPropagation();
+    if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+    const r = add.getBoundingClientRect();
+    window.aegisAPI.openPopup('bmadd', { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+  };
+  bookmarksBar.appendChild(add);
 }
 
 // ---- Tabs ----

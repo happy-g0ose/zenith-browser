@@ -246,14 +246,7 @@ class ConfigStore {
     this.prefs = this.readJSON(this.configFile, this.defaultPrefs);
     this.pruneUnknownPrefs();
     this.profiles = this.readJSON(this.profilesFile, this.defaultProfiles);
-    this.bookmarks = this.readJSON(this.bookmarksFile, [
-      { title: 'DuckDuckGo', url: 'https://duckduckgo.com' },
-      { title: 'Fingerprint Lab', url: 'about:fingerprint' },
-      { title: 'Settings', url: 'about:config' },
-      { title: 'Customizer', url: 'about:customizer' },
-      { title: 'Cover Your Tracks', url: 'https://coveryourtracks.eff.org' },
-      { title: 'IP Leak Test', url: 'https://ipleak.net' }
-    ]);
+    this.bookmarks = this.readJSON(this.bookmarksFile, []);
     this.history = this.readJSON(this.historyFile, []);
 
     if (!fs.existsSync(this.userChromeFile)) {
@@ -492,20 +485,54 @@ class ConfigStore {
     this.writeText(this.userContentFile, css);
   }
 
-  // Bookmarks
+  // Bookmarks.
+  // Structure: flat items {title, url} and folders {id, name, children:[items]}
   getBookmarks() {
     return this.bookmarks;
   }
 
   addBookmark(item) {
+    if (!item || !item.url) return false;
     if (!this.bookmarks.some(b => b.url === item.url)) {
-      this.bookmarks.push(item);
+      this.bookmarks.push({ title: item.title || item.url, url: item.url });
       this.writeJSON(this.bookmarksFile, this.bookmarks);
     }
+    return true;
+  }
+
+  addFolder(name) {
+    const folder = { id: 'folder_' + Date.now(), name: String(name || 'Новая папка'), children: [] };
+    this.bookmarks.push(folder);
+    this.writeJSON(this.bookmarksFile, this.bookmarks);
+    return folder;
+  }
+
+  addItemToFolder(folderId, item) {
+    const folder = this._findFolder(folderId);
+    if (!folder || !item || !item.url) return false;
+    if (!folder.children.some(c => c.url === item.url)) {
+      folder.children.push({ title: item.title || item.url, url: item.url });
+      this.writeJSON(this.bookmarksFile, this.bookmarks);
+    }
+    return true;
+  }
+
+  _findFolder(id, list = this.bookmarks) {
+    for (const b of list) {
+      if (b.id === id) return b;
+      if (b.children) {
+        const found = this._findFolder(id, b.children);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   removeBookmark(url) {
-    this.bookmarks = this.bookmarks.filter(b => b.url !== url);
+    const filterList = (list) => list
+      .filter(b => b.url !== url)
+      .map(b => b.children ? { ...b, children: filterList(b.children) } : b);
+    this.bookmarks = filterList(this.bookmarks);
     this.writeJSON(this.bookmarksFile, this.bookmarks);
   }
 

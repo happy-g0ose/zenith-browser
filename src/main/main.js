@@ -233,6 +233,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
   view.webContents.on('did-fail-load', (_e, errorCode, errorDescription, validatedURL, isMainFrame) => {
     if (!isMainFrame || errorCode === -3) return;
     tabData.failedUrl = validatedURL || '';
+    tabData.lastFailedUrl = validatedURL || '';
     tabData.title = 'Страница не загрузилась';
     view.webContents.loadURL(getErrorPageUrl(validatedURL, errorDescription, errorCode));
     notifyTabsUpdated();
@@ -245,6 +246,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
       tabData.url = tabData.failedUrl;
       tabData.failedUrl = null;
     } else {
+      tabData.lastFailedUrl = null;
       tabData.url = getDisplayUrl(currentUrl);
       if (!tabData.incognito) {
         configStore.addHistory({ title: tabData.title, url: tabData.url });
@@ -498,9 +500,16 @@ function setupIPCHandlers() {
   });
 
   // Bookmarks & History
+  const bookmarksChanged = () => mainWindow && mainWindow.webContents.send('bookmarks:changed');
   ipcMain.handle('bookmarks:get', () => configStore.getBookmarks());
-  ipcMain.handle('bookmarks:add', (_e, b) => configStore.addBookmark(b));
-  ipcMain.handle('bookmarks:remove', (_e, url) => configStore.removeBookmark(url));
+  ipcMain.handle('bookmarks:add', (_e, b) => { const r = configStore.addBookmark(b); bookmarksChanged(); return r; });
+  ipcMain.handle('bookmarks:remove', (_e, url) => { configStore.removeBookmark(url); bookmarksChanged(); });
+  ipcMain.handle('bookmarks:add-folder', (_e, name) => { const r = configStore.addFolder(name); bookmarksChanged(); return r; });
+  ipcMain.handle('bookmarks:add-to-folder', (_e, { folderId, item }) => {
+    const r = configStore.addItemToFolder(folderId, item);
+    bookmarksChanged();
+    return r;
+  });
   ipcMain.handle('history:get', () => configStore.getHistory());
   ipcMain.handle('history:clear', () => configStore.clearHistory());
 
@@ -513,7 +522,16 @@ function setupIPCHandlers() {
   ipcMain.handle('tabs:close', (_e, tabId) => closeTab(tabId));
   ipcMain.handle('tabs:reload', (_e, tabId) => {
     const t = tabs.find(x => x.id === tabId);
-    if (t && t.view) t.view.webContents.reload();
+    if (!t || !t.view) return;
+    // After a failed load the tab shows error.html - reload must retry the
+    // original URL, not refresh the error page itself
+    if (t.lastFailedUrl) {
+      const url = t.lastFailedUrl;
+      t.lastFailedUrl = null;
+      t.view.webContents.loadURL(resolvePageUrl(url));
+    } else {
+      t.view.webContents.reload();
+    }
   });
   ipcMain.handle('tabs:back', (_e, tabId) => {
     const t = tabs.find(x => x.id === tabId);
@@ -572,7 +590,7 @@ function setupIPCHandlers() {
   // way to toggle page dimming is an idempotent <style id> element.
   const DIM_ON_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(!s){s=document.createElement('style');s.id='zenith-dim-style';s.textContent=${JSON.stringify(POPUP_DIM_CSS)};document.documentElement.appendChild(s);}})()`;
   const DIM_OFF_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(s)s.parentNode.removeChild(s);})()`;
-  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 }, extlist: { w: 300, h: 480 } };
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 }, extlist: { w: 300, h: 480 }, folder: { w: 264, h: 320 }, bmadd: { w: 300, h: 430 } };
   let popupWin = null;
   let popupDim = null; // { wc }
   let popupLastClosedAt = 0;
@@ -600,7 +618,7 @@ function setupIPCHandlers() {
     popupLastClosedAt = Date.now();
   }
 
-  function openPopupWindow(type, rect) {
+  function openPopupWindow(type, rect, data = null) {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const wasOpen = popupWin && !popupWin.isDestroyed();
     const sameType = wasOpen && popupWin.__type === type;
@@ -663,7 +681,9 @@ function setupIPCHandlers() {
     popupWin.webContents.on('console-message', (e, level, message) => {
       if (level >= 2) console.warn(`[Zenith][popup:${type}]`, message);
     });
-    popupWin.loadFile(path.join(__dirname, '../renderer/pages/popup.html'), { search: 'panel=' + type });
+    popupWin.loadFile(path.join(__dirname, '../renderer/pages/popup.html'), {
+      search: 'panel=' + type + (data && data.id ? '&id=' + encodeURIComponent(data.id) : '')
+    });
     let shown = false;
     const doShow = () => {
       if (shown || !popupWin || popupWin.isDestroyed()) return;
@@ -683,8 +703,13 @@ function setupIPCHandlers() {
 
   ipcMain.on('popup:open', (_e, payload) => {
     const p = payload || {};
-    const type = ['shield', 'menu', 'palette', 'engine', 'extlist'].includes(p.type) ? p.type : 'menu';
-    openPopupWindow(type, p.rect);
+    const type = ['shield', 'menu', 'palette', 'engine', 'extlist', 'folder', 'bmadd'].includes(p.type) ? p.type : 'menu';
+    // Folder popups size themselves by the number of quick links inside
+    const rect = p.rect;
+    if (type === 'folder' && p.data && typeof p.data.count === 'number') {
+      POPUP_SIZES.folder.h = Math.min(480, 74 + p.data.count * 36);
+    }
+    openPopupWindow(type, rect, p.data);
   });
   ipcMain.on('popup:close', () => closePopupWindow());
 }

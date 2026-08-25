@@ -45,8 +45,11 @@ if (isInternalPage) {
     getBookmarks: () => ipcRenderer.invoke('bookmarks:get'),
     addBookmark: (b) => ipcRenderer.invoke('bookmarks:add', b),
     removeBookmark: (url) => ipcRenderer.invoke('bookmarks:remove', url),
+    addFolder: (name) => ipcRenderer.invoke('bookmarks:add-folder', name),
+    addItemToFolder: (folderId, b) => ipcRenderer.invoke('bookmarks:add-to-folder', { folderId, item: b }),
     getHistory: () => ipcRenderer.invoke('history:get'),
     clearHistory: () => ipcRenderer.invoke('history:clear'),
+    onBookmarksChanged: (callback) => ipcRenderer.on('bookmarks:changed', () => callback()),
 
     // Tab & Navigation controls from renderer shell
     createNewTab: (url, profileId) => ipcRenderer.invoke('tabs:create', { url, profileId }),
