@@ -128,7 +128,12 @@
     .preset-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
 
     .hint { color: var(--text-muted); font-size: 11.5px; line-height: 1.55; }
-    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .save-status {
+      color: var(--green, #3ecf8e); font-size: 12px; font-weight: 600;
+      opacity: 0; transition: opacity 0.3s var(--ease-smooth, ease);
+    }
+    .save-status.show { opacity: 1; }
 
     /* ---- CSS editor pane (legacy) ---- */
     .editor-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
@@ -224,8 +229,10 @@
         </div>
 
         <div class="actions-row">
+          <button class="btn" id="btn-save">Сохранить</button>
           <button class="btn btn-secondary" id="btn-reset-part" disabled>Сбросить цвет части</button>
           <button class="btn btn-danger" id="btn-reset-all">Сбросить всё</button>
+          <span class="save-status" id="save-status"></span>
         </div>
 
         <div>
@@ -233,7 +240,7 @@
           <div class="preset-grid" id="preset-grid"></div>
         </div>
 
-        <p class="hint">Тема задаёт базовые цвета, а раскраска частей накладывается поверх. Пресет применит тему и сбросит ручную раскраску.</p>
+        <p class="hint">Тема задаёт базовые цвета, а раскраска частей накладывается поверх. Изменения сохраняются автоматически (и кнопкой «Сохранить») и переживают перезапуск.</p>
       </div>
     </div>
   </div>

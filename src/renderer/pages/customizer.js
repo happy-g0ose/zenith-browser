@@ -133,9 +133,23 @@ function setOverride(varName, hex) {
 
 function scheduleSave() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    if (window.aegisAPI) await window.aegisAPI.setPref('ui.custom.overrides', overrides);
-  }, 300);
+  saveTimer = setTimeout(saveNow, 600);
+}
+
+function saveNow() {
+  clearTimeout(saveTimer);
+  if (window.aegisAPI) {
+    window.aegisAPI.setPref('ui.custom.overrides', overrides).then(showSaved);
+  }
+}
+
+function showSaved() {
+  const s = $('save-status');
+  if (!s) return;
+  s.textContent = 'Сохранено ✓';
+  s.classList.add('show');
+  clearTimeout(showSaved._t);
+  showSaved._t = setTimeout(() => s.classList.remove('show'), 2000);
 }
 
 function setupVisualStudio() {
@@ -185,6 +199,8 @@ function setupVisualStudio() {
     refreshEditorFields();
     showToast('Раскраска сброшена к теме');
   };
+
+  $('btn-save').onclick = saveNow;
 
   const grid = $('preset-grid');
   grid.innerHTML = THEME_PRESETS.map(([val, name, dot]) => `
