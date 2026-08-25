@@ -136,11 +136,56 @@ if (window.aegisAPI) {
   else if (type === 'palette') renderPalette();
   else if (type === 'engine') renderEngine();
   else if (type === 'extlist') renderExtList();
+  else if (type === 'downloads') renderDownloads();
   else if (type === 'folder') renderFolder();
   else if (type === 'bmadd') renderBmAdd();
   else renderMenu();
 } else {
   panel.innerHTML = '<div style="padding:20px;color:var(--text-muted)">Мост недоступен</div>';
+}
+
+// ---- Downloads ----
+function fmtSize(bytes) {
+  if (!bytes) return '';
+  const u = ['Б', 'КБ', 'МБ', 'ГБ'];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(v >= 10 || i === 0 ? 0 : 1) + ' ' + u[i];
+}
+
+async function renderDownloads() {
+  let list = [];
+  try { list = (await window.aegisAPI.getDownloads()) || []; } catch (e) {}
+  list = list.slice().reverse();
+
+  const rows = list.map(d => {
+    const pct = d.total ? Math.round((d.received / d.total) * 100) : (d.state === 'done' ? 100 : 0);
+    const stateText = d.state === 'done' ? fmtSize(d.total || d.received)
+      : d.state === 'cancelled' ? 'Отменено'
+      : d.state === 'paused' ? 'Пауза · ' + fmtSize(d.received)
+      : fmtSize(d.received) + (d.total ? ' из ' + fmtSize(d.total) : '');
+    return `
+      <div class="dl-row">
+        <div class="dl-top">
+          <span class="dl-name" title="${esc(d.name)}">${esc(d.name)}</span>
+          <span class="dl-size">${stateText}</span>
+        </div>
+        <div class="dl-bar"><div class="dl-fill${d.state === 'done' ? ' done' : ''}" style="width:${pct}%"></div></div>
+        <div class="dl-btns">
+          ${d.state === 'done' ? `<button class="ext-manage dl-open" data-id="${esc(d.id)}">Открыть</button>` : ''}
+          <button class="ext-manage dl-show" data-id="${esc(d.id)}">Папка</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="popup-header"><span class="popup-title">Загрузки</span></div>
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-top:4px">
+      ${rows || '<div class="ext-empty">Загрузок пока нет</div>'}
+    </div>`;
+
+  panel.querySelectorAll('.dl-open').forEach(b => { b.onclick = () => window.aegisAPI.openDownload(b.dataset.id); });
+  panel.querySelectorAll('.dl-show').forEach(b => { b.onclick = () => window.aegisAPI.showDownloadInFolder(b.dataset.id); });
 }
 
 // ---- Folder quick links ----

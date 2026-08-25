@@ -1,203 +1,227 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Tab</title>
-    <style>
-        :root {
-            --base-bg: #0b0d11;
-            --accent: #5b8def;
-            --status: #3ecf8e;
-            --text-main: #c9d1d9;
-            --text-dim: #6e7681;
-            --border: rgba(110, 118, 129, 0.2);
-            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Новая вкладка</title>
+  <style>
+    :root {
+      --nt-text: #e6edf3;
+      --nt-muted: rgba(230, 237, 243, 0.55);
+      --nt-card: rgba(13, 16, 22, 0.55);
+      --nt-border: rgba(255, 255, 255, 0.09);
+      --nt-accent: #5b8def;
+    }
 
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--base-bg);
-            color: var(--text-main);
-            font-family: var(--font-stack);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Subtle CSS noise texture */
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 1;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
+    html, body { height: 100%; }
 
-        .container {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 600px;
-            padding: 0 20px;
-        }
+    body {
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+      color: var(--nt-text);
+      background: #0b0d11;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      padding: 30px;
+    }
 
-        .clock {
-            font-size: 5rem;
-            font-weight: 300;
-            letter-spacing: -0.05em;
-            margin-bottom: 2.5rem;
-            color: var(--text-main);
-        }
+    /* Wallpaper layer */
+    .wallpaper {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 0;
+    }
+    .wallpaper.on { opacity: 1; }
+    .wallpaper.preset-aurora { background: linear-gradient(135deg, #0f2027 0%, #203a43 30%, #2c5364 60%, #1a2980 100%); }
+    .wallpaper.preset-sunset { background: linear-gradient(135deg, #355c7d 0%, #6c5b7b 45%, #c06c84 100%); }
+    .wallpaper.preset-ocean  { background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); }
+    .wallpaper.preset-forest { background: linear-gradient(135deg, #134e5e 0%, #3a7bd5 55%, #71b280 100%); }
+    .wallpaper.preset-mono   { background: linear-gradient(160deg, #16191f 0%, #0b0d11 100%); }
 
-        .search-wrapper {
-            width: 100%;
-            position: relative;
-            margin-bottom: 2.5rem;
-            display: flex;
-            align-items: center;
-        }
+    body.wallpapered { --nt-card: rgba(10, 12, 16, 0.5); }
 
-        .search-icon {
-            position: absolute;
-            left: 16px;
-            width: 16px;
-            height: 16px;
-            fill: var(--text-dim);
-            pointer-events: none;
-        }
+    .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 22px; width: min(680px, 92vw); }
 
-        .search-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px 16px 12px 42px;
-            font-size: 1rem;
-            color: var(--text-main);
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
+    .greet { text-align: center; }
+    .clock {
+      font-size: 76px;
+      font-weight: 200;
+      letter-spacing: 3px;
+      line-height: 1;
+      text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+    }
+    .date-line { margin-top: 8px; font-size: 14px; color: var(--nt-muted); }
 
-        .search-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px var(--accent);
-        }
+    .search-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--nt-card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--nt-border);
+      border-radius: 14px;
+      padding: 13px 18px;
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.3);
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .search-wrap:focus-within {
+      border-color: var(--nt-accent);
+      box-shadow: 0 10px 34px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(91, 141, 239, 0.18);
+    }
+    .nt-engine {
+      width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .nt-engine svg { width: 14px; height: 14px; }
+    .search-wrap input {
+      flex: 1;
+      background: none; border: none; outline: none;
+      color: var(--nt-text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+    .search-wrap input::placeholder { color: var(--nt-muted); }
 
-        .search-input::placeholder {
-            color: var(--text-dim);
-        }
+    /* Quick tiles */
+    .tiles {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 10px;
+    }
+    .tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 8px 12px;
+      background: var(--nt-card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--nt-border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s var(--ease-smooth, ease), border-color 0.15s, background 0.15s;
+    }
+    .tile:hover { transform: translateY(-3px); border-color: var(--nt-accent); }
+    .tile .t-chip {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 15px; font-weight: 700;
+    }
+    .tile .t-name {
+      font-size: 11.5px; color: var(--nt-muted);
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
 
-        .divider {
-            width: 100%;
-            height: 1px;
-            background: var(--border);
-            margin-bottom: 2rem;
-        }
+    .nt-footer { display: flex; gap: 14px; font-size: 12px; color: var(--nt-muted); }
+    .nt-footer span { display: flex; align-items: center; gap: 5px; }
+    .nt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--nt-accent); }
 
-        .links-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 4rem;
-        }
+    /* Wallpaper settings card */
+    .wp-settings {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 2;
+      width: 250px;
+      background: var(--nt-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--nt-border);
+      border-radius: 12px;
+      padding: 14px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .wp-settings.open { display: flex; }
+    .wp-settings h4 { font-size: 12px; font-weight: 600; color: var(--nt-muted); text-transform: uppercase; letter-spacing: .06em; }
+    .wp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+    .wp-swatch {
+      height: 34px; border-radius: 8px; cursor: pointer;
+      border: 2px solid transparent; transition: transform .12s, border-color .12s;
+    }
+    .wp-swatch:hover { transform: scale(1.07); }
+    .wp-swatch.active { border-color: var(--nt-accent); }
+    .wp-actions { display: flex; flex-direction: column; gap: 7px; }
+    .wp-btn {
+      padding: 8px 10px; border-radius: 8px; border: 1px solid var(--nt-border);
+      background: rgba(255,255,255,0.05); color: var(--nt-text);
+      font-size: 12px; cursor: pointer; text-align: center;
+      transition: border-color .14s;
+    }
+    .wp-btn:hover { border-color: var(--nt-accent); }
 
-        .link-item {
-            color: var(--text-dim);
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: color 0.2s;
-            display: flex;
-            align-items: center;
-        }
-
-        .link-item:hover {
-            color: var(--text-main);
-        }
-
-        .link-item:not(:last-child)::after {
-            content: '';
-            display: inline-block;
-            width: 3px;
-            height: 3px;
-            border-radius: 50%;
-            background-color: var(--text-dim);
-            margin-left: 12px;
-            opacity: 0.5;
-        }
-
-        .shield-status {
-            position: absolute;
-            bottom: 2rem;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            z-index: 2;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: var(--status);
-            box-shadow: 0 0 8px var(--status);
-        }
-
-        .status-text span {
-            color: var(--text-dim);
-        }
-        
-        .status-text span.dot-sep::before {
-            content: '·';
-            margin: 0 4px;
-        }
-    </style>
+    .gear {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 1;
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--nt-border);
+      background: var(--nt-card);
+      backdrop-filter: blur(14px);
+      color: var(--nt-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: color .15s, border-color .15s;
+    }
+    .gear:hover { color: var(--nt-text); border-color: var(--nt-accent); }
+    body.wp-open .gear { display: none; }
+  </style>
 </head>
 <body>
+  <div class="wallpaper" id="wallpaper"></div>
 
-<div class="container">
-    <div class="clock" id="clock">00:00</div>
+  <button class="gear" id="gear" title="Фон новой вкладки">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001.51 1 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.62.63 1.11 1.25 1.25H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </button>
 
-    <div class="search-wrapper">
-        <svg class="search-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C8.68629 2 6 4.68629 6 8V10H5C3.89543 10 3 10.8954 3 12V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V12C21 10.8954 20.1046 10 19 10H18V8C18 4.68629 15.3137 2 12 2ZM8 10V8C8 5.79086 9.79086 4 12 4C14.2091 4 16 5.79086 16 8V10H8ZM5 12H19V20H5V12ZM12 14.5C11.1716 14.5 10.5 15.1716 10.5 16C10.5 16.8284 11.1716 17.5 12 17.5C12.8284 17.5 13.5 16.8284 13.5 16C13.5 15.1716 12.8284 14.5 12 14.5Z" />
-        </svg>
-        <input type="text" id="search-input" class="search-input" placeholder="Search DuckDuckGo or enter address..." autocomplete="off" autofocus>
+  <div class="wp-settings" id="wp-settings">
+    <h4>Фон</h4>
+    <div class="wp-grid" id="wp-grid"></div>
+    <div class="wp-actions">
+      <button class="wp-btn" id="wp-custom">Своя картинка…</button>
+      <button class="wp-btn" id="wp-none">Убрать фон</button>
+      <button class="wp-btn" id="wp-close">Готово</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="greet">
+      <div class="clock" id="clock">00:00</div>
+      <div class="date-line" id="date-line"></div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="links-row">
-        <a href="about:fingerprint" class="link-item">Аудит отпечатков</a>
-        <a href="about:profiles" class="link-item">Профили</a>
-        <a href="about:customizer" class="link-item">Кастомизация (CSS)</a>
-        <a href="about:config" class="link-item">Настройки</a>
-        <a href="https://duckduckgo.com" class="link-item">DuckDuckGo</a>
-        <a href="https://ipleak.net" class="link-item">IPLeak</a>
+    <div class="search-wrap">
+      <span class="nt-engine" id="nt-engine"></span>
+      <input type="text" id="nt-search" placeholder="Поиск или адрес..." autocomplete="off" spellcheck="false" autofocus>
     </div>
-</div>
 
-<div class="shield-status">
-    <div class="status-dot"></div>
-    <div class="status-text">
-        Shield active <span class="dot-sep">0 blocked</span> <span class="dot-sep">Canvas noise seeded</span> <span class="dot-sep">WebRTC protected</span>
+    <div class="tiles" id="tiles"></div>
+
+    <div class="nt-footer">
+      <span><span class="nt-dot"></span> Shield active</span>
+      <span>Canvas noise seeded</span>
+      <span>WebRTC protected</span>
     </div>
-</div>
+  </div>
 
-<script src="newtab.js"></script>
+  <script src="../assets/engine-icons.js"></script>
+  <script src="newtab.js"></script>
 </body>
 </html>

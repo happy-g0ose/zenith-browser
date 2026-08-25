@@ -117,6 +117,11 @@ class SessionManager {
       this.extensionsManager.attachToSession(ses);
     }
 
+    // 2c. Downloads: auto-save to the OS Downloads folder, report progress
+    if (typeof ses.on === 'function' && this.onDownload) {
+      ses.on('will-download', (_event, item) => this.onDownload(item));
+    }
+
     // 3. WebRTC Policy & Leak Prevention
     try {
       if (typeof ses.setWebRTCIPHandlingPolicy === 'function') {

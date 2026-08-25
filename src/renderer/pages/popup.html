@@ -152,6 +152,17 @@
     }
     .form-input:focus { border-color: var(--accent, #5b8def); }
     select.form-input { cursor: pointer; }
+
+    /* Downloads */
+    .dl-row { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 8px; background: rgba(255,255,255,.03); }
+    .dl-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .dl-name { font-size: 12px; color: var(--text-bright, #e6edf3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dl-size { font-size: 10.5px; color: var(--text-muted, #8b949e); flex-shrink: 0; }
+    .dl-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .dl-fill { height: 100%; background: var(--accent, #5b8def); border-radius: 3px; transition: width .3s var(--ease-smooth, ease); }
+    .dl-fill.done { background: var(--green, #3ecf8e); }
+    .dl-btns { display: flex; gap: 6px; }
+    .dl-btns .ext-manage { padding: 5px 10px; font-size: 11px; width: auto; }
   </style>
 </head>
 <body>

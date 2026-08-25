@@ -960,3 +960,58 @@ body.theme-fade * {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- Find in page bar ---- */
+.findbar {
+  position: absolute;
+  top: 72px;
+  right: 14px;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary, #161b22);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 6px 8px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+}
+.findbar.visible { display: flex; animation: findIn 0.16s var(--ease-smooth); }
+@keyframes findIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+.findbar input {
+  width: 210px;
+  background: var(--bg-tertiary, #1c2128);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-bright);
+  font-size: 12.5px;
+  padding: 5px 9px;
+  outline: none;
+}
+.findbar input:focus { border-color: var(--accent); }
+.find-count { font-size: 11px; color: var(--text-muted); min-width: 38px; text-align: center; }
+.find-btn {
+  width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer; font-size: 12px;
+}
+.find-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-bright); }
+
+/* ---- Downloads indicator ---- */
+.dl-btn { position: relative; }
+.dl-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  display: none;
+}
+.dl-badge.active { display: block; }

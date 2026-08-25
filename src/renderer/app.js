@@ -36,6 +36,8 @@ async function init() {
   setupOmnibox();
   setupPopups();
   setupShortcuts();
+  setupFindbar();
+  setupDownloads();
   await loadUserChromeCSS();
   await loadActiveProfile();
   await loadShieldStats();
@@ -334,6 +336,21 @@ function renderTabs() {
 function renderTabList(container) {
   if (!container) return;
   const els = container._tabEls || (container._tabEls = new Map());
+  if (!container._dragWired) {
+    container._dragWired = true;
+    container.addEventListener('dragover', e => e.preventDefault());
+    container.addEventListener('drop', e => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData('text/plain');
+      if (!id || !window.aegisAPI) return;
+      const after = [...container.children].find(child => {
+        const r = child.getBoundingClientRect();
+        return e.clientX < r.left + r.width / 2;
+      });
+      const beforeId = after ? after.dataset.id : null;
+      if (beforeId !== id) window.aegisAPI.reorderTab(id, beforeId);
+    });
+  }
   const seen = new Set();
 
   tabs.forEach((tab, index) => {
@@ -344,6 +361,11 @@ function renderTabList(container) {
     if (isNew) {
       el = document.createElement('div');
       els.set(tab.id, el);
+      el.draggable = true;
+      el.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', el.dataset.id);
+        e.dataTransfer.effectAllowed = 'move';
+      });
       el.addEventListener('click', e => {
         if (e.target.classList.contains('tab-close-btn')) return;
         if (window.aegisAPI) window.aegisAPI.switchTab(el.dataset.id);
@@ -456,7 +478,82 @@ function setupShortcuts() {
   window.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); toggleCommandPalette(); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') { e.preventDefault(); urlInput.focus(); urlInput.select(); }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) { e.preventDefault(); window.aegisAPI && window.aegisAPI.zoomIn(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '-') { e.preventDefault(); window.aegisAPI && window.aegisAPI.zoomOut(); }
+    else if ((e.ctrlKey || e.metaKey) && e.key === '0') { e.preventDefault(); window.aegisAPI && window.aegisAPI.zoomReset(); }
+    else if (e.key === 'F3') { e.preventDefault(); openFindbar(); }
   });
+}
+
+// ---- Find in page ----
+function openFindbar() {
+  const fb = $('findbar');
+  const input = $('find-input');
+  if (!fb || !input) return;
+  fb.classList.add('visible');
+  input.focus();
+  input.select();
+  if (input.value.trim()) doFind(true, true);
+}
+
+function closeFindbar() {
+  const fb = $('findbar');
+  if (fb) fb.classList.remove('visible');
+  if (window.aegisAPI) window.aegisAPI.findStop();
+}
+
+function doFind(forward, findNext) {
+  const input = $('find-input');
+  const count = $('find-count');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) { if (count) count.textContent = ''; return; }
+  if (window.aegisAPI) window.aegisAPI.findStart(text, forward, findNext);
+}
+
+function setupFindbar() {
+  const input = $('find-input');
+  if (!input) return;
+  input.addEventListener('input', () => doFind(true, false));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); doFind(!e.shiftKey, true); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeFindbar(); }
+  });
+  $('find-next').onclick = () => doFind(true, true);
+  $('find-prev').onclick = () => doFind(false, true);
+  $('find-close').onclick = closeFindbar;
+  if (typeof window.aegisAPI.onFindResults === 'function') {
+    window.aegisAPI.onFindResults(r => {
+      const count = $('find-count');
+      if (count) count.textContent = r && r.matches ? `${r.active}/${r.matches}` : '0/0';
+    });
+  }
+  if (typeof window.aegisAPI.onFindRequest === 'function') {
+    window.aegisAPI.onFindRequest(() => openFindbar());
+  }
+}
+
+// ---- Downloads indicator ----
+function setupDownloads() {
+  const btn = $('btn-downloads');
+  if (!btn) return;
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+    const r = btn.getBoundingClientRect();
+    window.aegisAPI.openPopup('downloads', { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+  };
+  if (typeof window.aegisAPI.onDownloadsUpdated === 'function') {
+    window.aegisAPI.onDownloadsUpdated(list => {
+      const active = (list || []).filter(d => d.state === 'progressing' || d.state === 'paused').length;
+      btn.style.display = (list && list.length) ? '' : 'none';
+      const badge = $('dl-badge');
+      if (badge) {
+        badge.textContent = active || '';
+        badge.classList.toggle('active', active > 0);
+      }
+    });
+  }
 }
 
 window.addEventListener('DOMContentLoaded', init);

@@ -51,7 +51,7 @@ if (isInternalPage) {
     clearHistory: () => ipcRenderer.invoke('history:clear'),
     onBookmarksChanged: (callback) => ipcRenderer.on('bookmarks:changed', () => callback()),
 
-    // Tab & Navigation controls from renderer shell
+    // Tabs Actions
     createNewTab: (url, profileId) => ipcRenderer.invoke('tabs:create', { url, profileId }),
     createIncognitoTab: (url) => ipcRenderer.invoke('tabs:create', { url, incognito: true }),
     switchTab: (tabId) => ipcRenderer.invoke('tabs:switch', tabId),
@@ -62,6 +62,29 @@ if (isInternalPage) {
     navigateTab: (tabId, url) => ipcRenderer.invoke('tabs:navigate', { tabId, url }),
     navigateCurrent: (url) => ipcRenderer.invoke('tabs:navigate-current', url),
     toggleDevTools: (tabId) => ipcRenderer.invoke('tabs:devtools', tabId),
+    reorderTab: (id, beforeId) => ipcRenderer.invoke('tabs:reorder', { id, beforeId }),
+
+    // Zoom
+    zoomIn: () => ipcRenderer.send('zoom:in'),
+    zoomOut: () => ipcRenderer.send('zoom:out'),
+    zoomReset: () => ipcRenderer.send('zoom:reset'),
+
+    // Find in page
+    findStart: (text, forward, findNext) => ipcRenderer.invoke('find:start', { text, forward, findNext }),
+    findStop: () => ipcRenderer.invoke('find:stop'),
+    onFindResults: (cb) => ipcRenderer.on('find:results', (_e, r) => cb(r)),
+    onFindRequest: (cb) => ipcRenderer.on('action:find', () => cb()),
+
+    // Downloads
+    getDownloads: () => ipcRenderer.invoke('downloads:get'),
+    openDownload: (id) => ipcRenderer.invoke('downloads:open', id),
+    showDownloadInFolder: (id) => ipcRenderer.invoke('downloads:show', id),
+    onDownloadsUpdated: (cb) => ipcRenderer.on('downloads:updated', (_e, list) => cb(list)),
+
+    // New tab wallpaper
+    setWallpaperImage: () => ipcRenderer.invoke('wallpaper:set-image'),
+    setWallpaperPreset: (value) => ipcRenderer.invoke('wallpaper:set-preset', value),
+    onWallpaperChanged: (cb) => ipcRenderer.on('wallpaper:changed', (_e, v) => cb(v)),
     
     // Window & Overlay control
     minimizeWindow: () => ipcRenderer.send('window:minimize'),

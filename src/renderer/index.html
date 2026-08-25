@@ -78,6 +78,12 @@
       </div>
 
       <div class="nav-buttons-group">
+        <!-- Downloads indicator -->
+        <button class="nav-btn dl-btn" id="btn-downloads" title="Загрузки" style="display:none">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="dl-badge" id="dl-badge"></span>
+        </button>
+
         <!-- Loaded extensions strip -->
         <div class="ext-strip" id="ext-strip"></div>
 
@@ -108,6 +114,15 @@
 
     <!-- Row 3: Bookmarks bar -->
     <div class="bookmarks-bar" id="bookmarks-bar"></div>
+
+    <!-- Find in page bar (shell zone, above the web view) -->
+    <div class="findbar" id="findbar">
+      <input type="text" id="find-input" placeholder="Найти на странице..." autocomplete="off" spellcheck="false">
+      <span class="find-count" id="find-count"></span>
+      <button class="find-btn" id="find-prev" title="Назад">↑</button>
+      <button class="find-btn" id="find-next" title="Вперёд">↓</button>
+      <button class="find-btn" id="find-close" title="Закрыть (Esc)">✕</button>
+    </div>
 
     <!-- Main Viewport -->
     <div class="browser-body" id="browser-body">

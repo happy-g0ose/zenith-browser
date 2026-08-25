@@ -1,5 +1,6 @@
-const { app, BrowserWindow, WebContentsView, ipcMain, Menu, protocol, net } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, Menu, MenuItem, protocol, net, dialog, shell } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { pathToFileURL } = require('url');
 
 // Register custom schemes as privileged before app is ready
@@ -47,11 +48,90 @@ const adblockShield = new AdblockShield(configStore);
 const torManager = new TorManager();
 const extensionsManager = new ExtensionsManager(configStore);
 const sessionManager = new SessionManager(configStore, adblockShield, torManager, extensionsManager);
+sessionManager.onDownload = trackDownload;
 
 let mainWindow = null;
 let tabs = [];
 let activeTabId = null;
 let tabCounter = 0;
+const closedTabs = [];
+
+// ---- Downloads registry ----
+const downloads = new Map();
+let downloadSeq = 0;
+
+function broadcastDownloads() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('downloads:updated', [...downloads.values()]);
+}
+
+function trackDownload(item) {
+  const id = 'dl_' + (++downloadSeq);
+  const entry = {
+    id,
+    name: item.getFilename(),
+    path: item.getSavePath(),
+    received: item.getReceivedBytes(),
+    total: item.getTotalBytes(),
+    state: 'progressing'
+  };
+  downloads.set(id, entry);
+  broadcastDownloads();
+  item.on('updated', (_e, state) => {
+    entry.received = item.getReceivedBytes();
+    entry.total = item.getTotalBytes();
+    entry.state = state === 'interrupted' ? 'paused' : 'progressing';
+    broadcastDownloads();
+  });
+  item.once('done', (_e, state) => {
+    entry.state = state === 'completed' ? 'done' : (state === 'interrupted' ? 'paused' : 'cancelled');
+    entry.received = item.getReceivedBytes();
+    broadcastDownloads();
+  });
+}
+
+function activeView() {
+  const t = tabs.find(x => x.id === activeTabId);
+  return t && t.view ? t.view.webContents : null;
+}
+
+function zoomActive(delta) {
+  const wc = activeView();
+  if (!wc) return;
+  wc.setZoomLevel(Math.max(-6, Math.min(7, wc.getZoomLevel() + delta)));
+}
+
+function buildContextMenu(wc, params) {
+  const menu = new Menu();
+  const add = (opts) => menu.append(new MenuItem(opts));
+
+  if (params.linkURL) {
+    add({ label: 'Открыть ссылку в новой вкладке', click: () => createTab(params.linkURL) });
+    add({ label: 'Копировать адрес ссылки', click: () => require('electron').clipboard.writeText(params.linkURL) });
+    add({ type: 'separator' });
+  }
+  if (params.hasImageContents && params.srcURL) {
+    add({ label: 'Открыть изображение в новой вкладке', click: () => createTab(params.srcURL) });
+    add({ label: 'Сохранить изображение', click: () => wc.downloadURL(params.srcURL) });
+    add({ type: 'separator' });
+  }
+  if (params.isEditable) {
+    add({ role: 'cut', label: 'Вырезать' });
+    add({ role: 'copy', label: 'Копировать' });
+    add({ role: 'paste', label: 'Вставить' });
+    add({ type: 'separator' });
+  } else if (params.selectionText.trim()) {
+    add({ label: 'Копировать', role: 'copy' });
+    add({ type: 'separator' });
+  }
+  add({ label: 'Назад', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
+  add({ label: 'Вперёд', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
+  add({ label: 'Перезагрузить', click: () => wc.reload() });
+  add({ type: 'separator' });
+  add({ label: 'Проверить элемент', click: () => { wc.inspectElement(params.x, params.y); } });
+
+  menu.popup({ window: mainWindow });
+}
 
 // Internal pages registry: the ONLY local files reachable via zenith://, aegis:// or about:*
 const PAGES_DIR = path.join(__dirname, '../renderer/pages');
@@ -225,6 +305,23 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
     }
   });
 
+  view.webContents.on('found-in-page', (_e, result) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('find:results', {
+        matches: result.matches,
+        active: result.activeMatchOrdinal
+      });
+    }
+  });
+
+  view.webContents.on('zoom-changed', (_e, dir) => {
+    zoomActive(dir === 'in' ? 0.5 : -0.5);
+  });
+
+  view.webContents.on('context-menu', (_e, params) => {
+    buildContextMenu(view.webContents, params);
+  });
+
   view.webContents.on('page-title-updated', (_e, title) => {
     tabData.title = title;
     notifyTabsUpdatedSoon();
@@ -295,6 +392,11 @@ function closeTab(tabId) {
   if (index === -1) return;
 
   const closingTab = tabs[index];
+  // Keep for Ctrl+Shift+T restore (cap the stack)
+  if (closingTab.url && !closingTab.url.startsWith('about:')) {
+    closedTabs.push({ url: closingTab.url, profileId: closingTab.profileId, incognito: closingTab.incognito });
+    if (closedTabs.length > 20) closedTabs.shift();
+  }
   if (closingTab.view && mainWindow) {
     try {
       mainWindow.contentView.removeChildView(closingTab.view);
@@ -313,6 +415,12 @@ function closeTab(tabId) {
   }
 
   notifyTabsUpdated();
+}
+
+function restoreClosedTab() {
+  const snap = closedTabs.pop();
+  if (!snap) return;
+  createTab(snap.url, snap.profileId, snap.incognito);
 }
 
 function updateViewBounds() {
@@ -583,6 +691,66 @@ function setupIPCHandlers() {
       }
     }
   });
+  ipcMain.handle('tabs:reorder', (_e, { id, beforeId }) => {
+    const from = tabs.findIndex(t => t.id === id);
+    if (from === -1) return;
+    const [moved] = tabs.splice(from, 1);
+    let to = beforeId ? tabs.findIndex(t => t.id === beforeId) : tabs.length;
+    if (to === -1) to = tabs.length;
+    tabs.splice(to, 0, moved);
+    notifyTabsUpdated();
+  });
+
+  // Zoom for the active tab
+  ipcMain.on('zoom:in', () => zoomActive(0.5));
+  ipcMain.on('zoom:out', () => zoomActive(-0.5));
+  ipcMain.on('zoom:reset', () => {
+    const wc = activeView();
+    if (wc) wc.setZoomLevel(0);
+  });
+
+  // Downloads
+  ipcMain.handle('downloads:get', () => [...downloads.values()]);
+  ipcMain.handle('downloads:open', (_e, id) => {
+    const d = downloads.get(id);
+    if (d && d.path && fs.existsSync(d.path)) shell.openPath(d.path);
+  });
+  ipcMain.handle('downloads:show', (_e, id) => {
+    const d = downloads.get(id);
+    if (d && d.path && fs.existsSync(d.path)) shell.showItemInFolder(d.path);
+  });
+
+  // Find in page (drives the shell find bar)
+  ipcMain.handle('find:start', (_e, { text, forward, findNext }) => {
+    const t = tabs.find(x => x.id === activeTabId);
+    if (!t || !t.view || !text) return null;
+    t.view.webContents.findInPage(text, { forward: forward !== false, findNext: !!findNext });
+    return true;
+  });
+  ipcMain.handle('find:stop', () => {
+    const t = tabs.find(x => x.id === activeTabId);
+    if (t && t.view) t.view.webContents.stopFindInPage('clearSelection');
+  });
+
+  // New tab wallpaper
+  ipcMain.handle('wallpaper:set-image', async () => {
+    const res = await dialog.showOpenDialog({
+      title: 'Выберите изображение для новой вкладки',
+      properties: ['openFile'],
+      filters: [{ name: 'Изображения', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }]
+    });
+    if (res.canceled || !res.filePaths[0]) return null;
+    const dest = path.join(app.getPath('userData'), 'newtab-wallpaper' + path.extname(res.filePaths[0]).toLowerCase());
+    fs.copyFileSync(res.filePaths[0], dest);
+    const pref = 'file:///' + dest.replace(/\\/g, '/');
+    configStore.setPref('ui.newtab.wallpaper', pref);
+    mainWindow.webContents.send('wallpaper:changed', pref);
+    return pref;
+  });
+  ipcMain.handle('wallpaper:set-preset', (_e, value) => {
+    configStore.setPref('ui.newtab.wallpaper', String(value));
+    mainWindow.webContents.send('wallpaper:changed', String(value));
+  });
 
   // Window & Overlay Controls
   ipcMain.on('window:minimize', () => mainWindow && mainWindow.minimize());
@@ -601,7 +769,7 @@ function setupIPCHandlers() {
   // way to toggle page dimming is an idempotent <style id> element.
   const DIM_ON_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(!s){s=document.createElement('style');s.id='zenith-dim-style';s.textContent=${JSON.stringify(POPUP_DIM_CSS)};document.documentElement.appendChild(s);}})()`;
   const DIM_OFF_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(s)s.parentNode.removeChild(s);})()`;
-  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 }, extlist: { w: 300, h: 480 }, folder: { w: 264, h: 320 }, bmadd: { w: 300, h: 430 } };
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 }, extlist: { w: 300, h: 480 }, folder: { w: 264, h: 320 }, bmadd: { w: 300, h: 430 }, downloads: { w: 330, h: 420 } };
   let popupWin = null;
   let popupDim = null; // { wc }
   let popupLastClosedAt = 0;
@@ -714,7 +882,7 @@ function setupIPCHandlers() {
 
   ipcMain.on('popup:open', (_e, payload) => {
     const p = payload || {};
-    const type = ['shield', 'menu', 'palette', 'engine', 'extlist', 'folder', 'bmadd'].includes(p.type) ? p.type : 'menu';
+    const type = ['shield', 'menu', 'palette', 'engine', 'extlist', 'folder', 'bmadd', 'downloads'].includes(p.type) ? p.type : 'menu';
     // Folder popups size themselves by the number of quick links inside
     const rect = p.rect;
     if (type === 'folder' && p.data && typeof p.data.count === 'number') {
@@ -746,6 +914,8 @@ function setupAppMenu() {
         { label: 'Новая вкладка', accelerator: 'CommandOrControl+T', click: () => createTab('about:newtab') },
         { label: 'Новая инкогнито-вкладка', accelerator: 'CommandOrControl+Shift+N', click: () => createTab('about:newtab', null, true) },
         { label: 'Закрыть вкладку', accelerator: 'CommandOrControl+W', click: () => { if (activeTabId) closeTab(activeTabId); } },
+        { label: 'Вернуть закрытую вкладку', accelerator: 'CommandOrControl+Shift+T', click: () => restoreClosedTab() },
+        { label: 'Новое окно поиска на странице', accelerator: 'CommandOrControl+F', click: () => mainWindow && mainWindow.webContents.send('action:find') },
         { type: 'separator' },
         { role: 'quit', label: 'Выход' }
       ]
