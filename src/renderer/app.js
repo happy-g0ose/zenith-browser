@@ -188,21 +188,23 @@ function applyCustomOverrides(overrides) {
 function renderExtStrip(icons) {
   const strip = $('ext-strip');
   if (!strip) return;
-  strip.innerHTML = '';
-  icons.forEach(ext => {
-    const el = document.createElement('div');
-    el.className = 'ext-icon';
-    el.title = ext.name + (ext.version ? ' v' + ext.version : '') + ' — клик: управление расширениями';
-    if (ext.icon) {
-      el.innerHTML = `<img src="${ext.icon}" alt="">`;
-    } else {
-      el.innerHTML = `<span class="ext-fallback">${esc((ext.name || '?')[0].toUpperCase())}</span>`;
-    }
-    el.onclick = () => {
-      if (window.aegisAPI) window.aegisAPI.navigateCurrent('about:extensions');
+  const count = (icons || []).length;
+  strip.innerHTML = `
+    <button class="ext-puzzle-btn" id="ext-puzzle" title="Расширения${count ? ' (' + count + ')' : ''}">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/>
+      </svg>
+      ${count ? `<span class="ext-badge">${count}</span>` : ''}
+    </button>`;
+  const btn = $('ext-puzzle');
+  if (btn) {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (!window.aegisAPI || typeof window.aegisAPI.openPopup !== 'function') return;
+      const r = btn.getBoundingClientRect();
+      window.aegisAPI.openPopup('extlist', { left: r.left, right: r.right, top: r.top, bottom: r.bottom });
     };
-    strip.appendChild(el);
-  });
+  }
 }
 
 function esc(s) {

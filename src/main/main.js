@@ -486,8 +486,16 @@ function setupIPCHandlers() {
     return extensionsManager.importFromPath(p.sourcePath, typeof p.chromeId === 'string' ? p.chromeId : null);
   });
   ipcMain.handle('ext:install-folder', () => extensionsManager.installFromFolderDialog());
-  ipcMain.handle('ext:toggle', (_e, { id, enabled }) => extensionsManager.toggle(String(id), !!enabled));
-  ipcMain.handle('ext:uninstall', (_e, id) => extensionsManager.uninstall(String(id)));
+  ipcMain.handle('ext:toggle', (_e, { id, enabled }) => {
+    const res = extensionsManager.toggle(String(id), !!enabled);
+    notifyActiveTabChanged();
+    return res;
+  });
+  ipcMain.handle('ext:uninstall', (_e, id) => {
+    const res = extensionsManager.uninstall(String(id));
+    notifyActiveTabChanged();
+    return res;
+  });
 
   // Bookmarks & History
   ipcMain.handle('bookmarks:get', () => configStore.getBookmarks());
@@ -564,7 +572,7 @@ function setupIPCHandlers() {
   // way to toggle page dimming is an idempotent <style id> element.
   const DIM_ON_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(!s){s=document.createElement('style');s.id='zenith-dim-style';s.textContent=${JSON.stringify(POPUP_DIM_CSS)};document.documentElement.appendChild(s);}})()`;
   const DIM_OFF_JS = `(function(){var s=document.getElementById('zenith-dim-style');if(s)s.parentNode.removeChild(s);})()`;
-  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 } };
+  const POPUP_SIZES = { shield: { w: 268, h: 430 }, menu: { w: 288, h: 492 }, palette: { w: 540, h: 360 }, engine: { w: 240, h: 224 }, extlist: { w: 300, h: 480 } };
   let popupWin = null;
   let popupDim = null; // { wc }
   let popupLastClosedAt = 0;
@@ -675,7 +683,7 @@ function setupIPCHandlers() {
 
   ipcMain.on('popup:open', (_e, payload) => {
     const p = payload || {};
-    const type = ['shield', 'menu', 'palette', 'engine'].includes(p.type) ? p.type : 'menu';
+    const type = ['shield', 'menu', 'palette', 'engine', 'extlist'].includes(p.type) ? p.type : 'menu';
     openPopupWindow(type, p.rect);
   });
   ipcMain.on('popup:close', () => closePopupWindow());

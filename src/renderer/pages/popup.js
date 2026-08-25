@@ -135,9 +135,53 @@ if (window.aegisAPI) {
   if (type === 'shield') renderShield();
   else if (type === 'palette') renderPalette();
   else if (type === 'engine') renderEngine();
+  else if (type === 'extlist') renderExtList();
   else renderMenu();
 } else {
   panel.innerHTML = '<div style="padding:20px;color:var(--text-muted)">Мост недоступен</div>';
+}
+
+// ---- Extensions list (Opera-style dropdown) ----
+async function renderExtList() {
+  let list = [];
+  try { list = await window.aegisAPI.listExtensions(); } catch (e) {}
+
+  const rows = list.map(ext => `
+    <div class="ext-row${ext.disabled ? ' off' : ''}">
+      <span class="ext-ico">${ext.icon ? `<img src="${ext.icon}" alt="">` : '🧩'}</span>
+      <span class="ext-nm" title="${esc(ext.name)}">${esc(ext.name)}</span>
+      <label class="switch">
+        <input type="checkbox" data-id="${esc(ext.id)}" ${ext.disabled ? '' : 'checked'}>
+        <span class="track"></span><span class="knob"></span>
+      </label>
+    </div>`).join('');
+
+  panel.innerHTML = `
+    <div class="popup-header">
+      <span class="popup-title">Расширения</span>
+    </div>
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:2px">
+      ${rows || '<div class="ext-empty">Расширений нет.<br>Открой магазин, чтобы установить.</div>'}
+    </div>
+    <div class="ext-footer">
+      <button class="ext-manage" id="ext-manage">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>
+        Управление расширениями
+      </button>
+    </div>`;
+
+  panel.querySelectorAll('.switch input').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      if (!window.aegisAPI) return;
+      await window.aegisAPI.toggleExtension(inp.dataset.id, inp.checked);
+      const row = inp.closest('.ext-row');
+      if (row) row.classList.toggle('off', !inp.checked);
+    });
+  });
+  const manage = $('ext-manage');
+  if (manage) {
+    manage.onclick = () => go('about:extensions');
+  }
 }
 
 // ---- Quick search engine picker ----

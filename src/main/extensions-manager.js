@@ -23,13 +23,12 @@ function readManifest(dir) {
 }
 
 // Resolve __MSG_Key__ placeholders through _locales/<locale>/messages.json
-function resolveLocalizedName(manifest, dir) {
-  const raw = (manifest && manifest.name) || '';
-  const m = raw.match(/^__MSG_(.+?)__$/);
+function resolveMsg(raw, manifest, dir) {
+  const m = String(raw || '').match(/^__MSG_(.+?)__$/);
   if (!m) return raw;
   const key = m[1];
   const localesDir = path.join(dir, '_locales');
-  const order = [manifest.default_locale, 'en', 'en_US', 'en_GB', 'ru'].filter(Boolean);
+  const order = [manifest && manifest.default_locale, 'en', 'en_US', 'en_GB', 'ru'].filter(Boolean);
   try {
     order.push(...fs.readdirSync(localesDir).filter(d => !order.includes(d)));
   } catch (e) {}
@@ -42,6 +41,10 @@ function resolveLocalizedName(manifest, dir) {
     } catch (e) {}
   }
   return raw;
+}
+
+function resolveLocalizedName(manifest, dir) {
+  return resolveMsg((manifest && manifest.name) || '', manifest, dir);
 }
 
 function pickIcon(dir, manifest) {
@@ -87,12 +90,14 @@ function readStoredMeta(dir) {
 function metaFor(dirName, dir, manifest, disabledSet) {
   const { compat, reason } = computeCompat(manifest);
   const stored = readStoredMeta(dir);
+  const rawDesc = (manifest && manifest.description) || '';
+  const desc = /^__MSG_/.test(rawDesc) ? resolveMsg(rawDesc, manifest, dir) : rawDesc;
   return {
     id: dirName,
     chromeId: stored.chromeId || null,
     name: resolveLocalizedName(manifest, dir) || dirName,
     version: (manifest && manifest.version) || '',
-    description: (manifest && manifest.description) || '',
+    description: desc,
     compat,
     compatReason: reason,
     manifestVersion: (manifest && manifest.manifest_version) || 0,
@@ -247,6 +252,10 @@ class ExtensionsManager {
     const handles = this.attached.get(ses);
     for (const name of installed) {
       if (disabled.has(name) || handles.has(name)) continue;
+      // Skip extensions that cannot function in Electron at all - loading
+      // them only produces console noise and dead background workers
+      const mf = readManifest(path.join(this.dir, name));
+      if (computeCompat(mf).compat === 'none') continue;
       try {
         const ext = await ses.loadExtension(path.join(this.dir, name));
         handles.set(name, ext);

@@ -24,31 +24,30 @@ function badgeHtml(ext) {
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
-function iconHtml(ext) {
+function iconHtml(ext, cls) {
   return ext.icon
-    ? `<span class="icon"><img src="${ext.icon}" alt=""></span>`
-    : `<span class="icon fallback">🧩</span>`;
+    ? `<span class="${cls}"><img src="${ext.icon}" alt=""></span>`
+    : `<span class="${cls} fallback">🧩</span>`;
 }
 
-function cardHtml(ext) {
+function rowHtml(ext) {
+  const desc = ext.description && !/^__MSG_/.test(ext.description) ? ext.description : '';
   return `
-    <div class="row">
-      ${iconHtml(ext)}
-      <div style="flex:1;min-width:0">
-        <div class="name">${escapeHtml(ext.name)}<span class="ver">v${escapeHtml(ext.version)}</span></div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
-          ${badgeHtml(ext)}
-        </div>
+    ${iconHtml(ext, 'ext-icon-lg')}
+    <div class="ext-info">
+      <div class="ext-name-row">
+        <span class="name">${escapeHtml(ext.name)}</span>
+        <span class="ver">v${escapeHtml(ext.version)}</span>
+        ${badgeHtml(ext)}
       </div>
+      ${desc ? `<div class="ext-desc" title="${escapeAttr(desc)}">${escapeHtml(desc)}</div>` : ''}
+      ${ext.disabled ? '<div class="reason">Выключено</div>' : (ext.compatReason ? `<div class="reason">⚠ ${escapeHtml(ext.compatReason)}</div>` : '')}
+    </div>
+    <div class="ext-actions">
       <label class="switch" title="${ext.disabled ? 'Включить' : 'Отключить'}">
         <input type="checkbox" data-act="toggle" data-id="${escapeAttr(ext.id)}" ${ext.disabled ? '' : 'checked'}>
         <span class="track"></span><span class="knob"></span>
       </label>
-    </div>
-    ${ext.description ? `<div class="desc">${escapeHtml(ext.description)}</div>` : ''}
-    ${ext.compatReason ? `<div class="reason">⚠ ${escapeHtml(ext.compatReason)}</div>` : ''}
-    <div class="actions">
-      <span class="spacer" style="flex:1"></span>
       <button class="btn small danger" data-act="delete" data-id="${escapeAttr(ext.id)}">Удалить</button>
     </div>
   `;
@@ -62,7 +61,8 @@ function escapeAttr(s) { return escapeHtml(s); }
 async function renderInstalled() {
   if (!window.aegisAPI) return;
   const list = await window.aegisAPI.listExtensions();
-  grid.innerHTML = list.map(cardHtml).join('');
+  const grid = $('installed-grid');
+  grid.innerHTML = list.map(ext => `<div class="ext-row${ext.disabled ? ' off' : ''}">${rowHtml(ext)}</div>`).join('');
   emptyState.style.display = list.length ? 'none' : 'block';
 }
 
@@ -91,7 +91,7 @@ $('btn-import-chrome').onclick = async () => {
       const installedKeys = new Set((await window.aegisAPI.listExtensions()).map(x => x.chromeId || x.id));
       listEl.innerHTML = candidates.map(c => `
         <div class="cand">
-          ${iconHtml(c)}
+          ${iconHtml(c, 'ext-icon-lg')}
           <div class="info">
             <div class="name">${escapeHtml(c.name)} <span class="ver">v${escapeHtml(c.version)}</span></div>
             <div class="meta">${escapeHtml(c.browser || '')} · ${escapeHtml(c.chromeProfile || '')} · ${badgeHtml(c)} ${c.compatReason ? '· ' + escapeHtml(c.compatReason) : ''}</div>

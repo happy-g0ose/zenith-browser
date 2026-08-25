@@ -107,6 +107,39 @@
     .palette-item:hover, .palette-item.selected { background: rgba(91, 141, 239, 0.14); }
     .palette-item .p-key { margin-left: auto; font-size: 10.5px; color: var(--text-dim, #484f58); }
     .palette-empty { color: var(--text-dim, #484f58); font-size: 12px; text-align: center; padding: 18px 0; }
+
+    /* Extensions list (Opera-style) */
+    .ext-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 8px; border-radius: 8px;
+      transition: background .12s var(--ease-smooth, ease);
+    }
+    .ext-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .ext-ico {
+      width: 30px; height: 30px; border-radius: 7px; background: rgba(255,255,255,.06);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+    }
+    .ext-ico img { width: 20px; height: 20px; object-fit: contain; }
+    .ext-nm { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-bright, #e6edf3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ext-row.off .ext-nm { opacity: .5; text-decoration: line-through; }
+    .switch { position: relative; width: 32px; height: 18px; flex-shrink: 0; cursor: pointer; }
+    .switch input { display: none; }
+    .switch .track { position: absolute; inset: 0; border-radius: 18px; background: #2a3140; transition: background .15s; }
+    .switch .knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #8b949e; transition: transform .15s, background .15s; }
+    .switch input:checked ~ .track { background: rgba(91,141,239,.45); }
+    .switch input:checked ~ .knob { transform: translateX(14px); background: var(--accent, #5b8def); }
+    .ext-footer {
+      margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border, rgba(255,255,255,.08));
+    }
+    .ext-manage {
+      width: 100%; padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border, rgba(255,255,255,.08));
+      background: var(--bg-tertiary, #1c2128); color: var(--text); font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .14s, border-color .14s;
+    }
+    .ext-manage:hover { border-color: var(--accent, #5b8def); }
+    .ext-empty { color: var(--text-muted, #8b949e); font-size: 12px; text-align: center; padding: 24px 8px; }
   </style>
 </head>
 <body>
