@@ -515,7 +515,9 @@ function renderTabList(container) {
       el.innerHTML = `
         ${uiShowFavicons ? `<span class="tab-favicon">${faviconHtml}</span>` : ''}
         <span class="tab-title" title="${escapeHtmlAttr(tab.url)}">${escapeHtmlAttr(title)}</span>
-        <button class="tab-close-btn">&times;</button>
+        <button class="tab-close-btn" title="Закрыть">
+          <svg viewBox="0 0 10 10" width="9" height="9"><path d="M1.2 1.2l7.6 7.6M8.8 1.2L1.2 8.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
       `;
       const closeBtn = el.querySelector('.tab-close-btn');
       if (closeBtn) {
