@@ -101,8 +101,8 @@ if (isInternalPage()) {
     onDownloadsUpdated: (cb) => ipcRenderer.on('downloads:updated', (_e, list) => cb(list)),
 
     // New tab wallpaper
-    setWallpaperImage: () => ipcRenderer.invoke('wallpaper:set-image'),
-    setWallpaperPreset: (value) => ipcRenderer.invoke('wallpaper:set-preset', value),
+    setWallpaperImage: (target) => ipcRenderer.invoke('wallpaper:set-image', target === 'topbar' ? 'topbar' : 'newtab'),
+    setWallpaperPreset: (value, target) => ipcRenderer.invoke('wallpaper:set-preset', value, target === 'topbar' ? 'topbar' : 'newtab'),
     onWallpaperChanged: (cb) => ipcRenderer.on('wallpaper:changed', (_e, v) => cb(v)),
 
     // Favicons

@@ -81,41 +81,49 @@ async function applyWallpaper() {
 
   if (!pref) {
     document.body.style.background = '#0b0d11';
-    markActiveSwatch('');
+    markActiveSwatch('wp-page', '');
     return;
   }
   if (pref.startsWith('preset:')) {
     const name = pref.slice(7);
     wp.classList.add('preset-' + name, 'on');
     document.body.style.background = 'transparent';
-    markActiveSwatch(name);
+    markActiveSwatch('wp-page', name);
   } else if (pref.startsWith('file://')) {
     wp.style.backgroundImage = `url("${pref}")`;
     wp.classList.add('on');
     document.body.style.background = 'transparent';
-    markActiveSwatch('custom');
+    markActiveSwatch('wp-page', 'custom');
   }
 }
 
-function markActiveSwatch(key) {
-  document.querySelectorAll('.wp-swatch').forEach(s => s.classList.toggle('active', s.dataset.wp === key));
+function markActiveSwatch(gridId, key) {
+  const grid = $(gridId);
+  if (!grid) return;
+  grid.querySelectorAll('.wp-swatch').forEach(s => s.classList.toggle('active', s.dataset.wp === key));
 }
 
 function setupWallpaperUI() {
-  const grid = $('wp-grid');
-  grid.innerHTML = WALLPAPER_PRESETS.map(([name, grad]) =>
-    `<div class="wp-swatch" data-wp="${name}" title="${name}" style="background:${grad}"></div>`
-  ).join('');
+  const buildGrid = (gridId, target) => {
+    const grid = $(gridId);
+    grid.innerHTML = WALLPAPER_PRESETS.map(([name, grad]) =>
+      `<div class="wp-swatch" data-wp="${name}" title="${name}" style="background:${grad}"></div>`
+    ).join('');
+    grid.querySelectorAll('.wp-swatch').forEach(sw => {
+      sw.onclick = async () => {
+        if (!window.aegisAPI) return;
+        await window.aegisAPI.setWallpaperPreset('preset:' + sw.dataset.wp, target);
+      };
+    });
+    return grid;
+  };
+  buildGrid('wp-grid-page', 'newtab');
+  buildGrid('wp-grid-top', 'topbar');
 
-  grid.querySelectorAll('.wp-swatch').forEach(sw => {
-    sw.onclick = async () => {
-      if (!window.aegisAPI) return;
-      await window.aegisAPI.setWallpaperPreset('preset:' + sw.dataset.wp);
-    };
-  });
-
-  $('wp-custom').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperImage(); };
-  $('wp-none').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperPreset(''); };
+  $('wp-custom-page').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperImage('newtab'); };
+  $('wp-none-page').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperPreset('', 'newtab'); };
+  $('wp-custom-top').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperImage('topbar'); };
+  $('wp-none-top').onclick = async () => { if (window.aegisAPI) await window.aegisAPI.setWallpaperPreset('', 'topbar'); };
   $('wp-close').onclick = () => {
     $('wp-settings').classList.remove('open');
     document.body.classList.remove('wp-open');
@@ -126,7 +134,9 @@ function setupWallpaperUI() {
   };
 
   if (typeof window.aegisAPI.onWallpaperChanged === 'function') {
-    window.aegisAPI.onWallpaperChanged(() => applyWallpaper());
+    window.aegisAPI.onWallpaperChanged(({ target }) => {
+      if (target === 'newtab') applyWallpaper();
+    });
   }
 }
 

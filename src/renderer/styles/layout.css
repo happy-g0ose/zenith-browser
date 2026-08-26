@@ -13,6 +13,11 @@
 
 /* ---- Row 1: Tabstrip Bar (clean, dark bar) ---- */
 .tabstrip-bar {
+  background-image: var(--topbar-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+
   display: flex;
   align-items: flex-end;
   height: var(--tabstrip-h);
@@ -245,6 +250,11 @@
 
 /* ---- Row 2: Navigation Bar ---- */
 .navigation-bar {
+  background-image: var(--topbar-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+
   display: flex;
   align-items: center;
   gap: 6px;
@@ -414,6 +424,11 @@
 
 /* ---- Row 3: Bookmarks Bar ---- */
 .bookmarks-bar {
+  background-image: var(--topbar-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+
   display: flex;
   align-items: center;
   gap: 2px;

@@ -70,6 +70,11 @@ async function init() {
     if (typeof window.aegisAPI.onLayoutChanged === 'function') {
       window.aegisAPI.onLayoutChanged(layout => applyCustomLayout(layout));
     }
+    if (typeof window.aegisAPI.onWallpaperChanged === 'function') {
+      window.aegisAPI.onWallpaperChanged(({ target, value }) => {
+        if (target === 'topbar') applyTopbarWallpaper(value);
+      });
+    }
     if (typeof window.aegisAPI.onBookmarksChanged === 'function') {
       window.aegisAPI.onBookmarksChanged(() => loadBookmarks());
     }
@@ -109,6 +114,10 @@ async function applyUiPrefs() {
   try {
     const layout = await window.aegisAPI.getPref('ui.custom.layout');
     applyCustomLayout(layout);
+  } catch (e) {}
+  try {
+    const topbarWp = await window.aegisAPI.getPref('ui.topbar.wallpaper');
+    applyTopbarWallpaper(topbarWp);
   } catch (e) {}
   updateTabstripContrast();
 }
@@ -218,6 +227,28 @@ function updateTabstripContrast() {
 }
 
 // ---- Layout editor (sizes + hidden parts) ----
+// ---- Topbar wallpaper (tabstrip + navbar + bookmarks share one image) ----
+function applyTopbarWallpaper(value) {
+  const body = document.body.style;
+  if (!value) {
+    body.removeProperty('--topbar-bg-image');
+    return;
+  }
+  if (value.startsWith('preset:')) {
+    const name = value.slice(7);
+    const grad = {
+      aurora: 'linear-gradient(135deg, #0f2027 0%, #203a43 30%, #2c5364 60%, #1a2980 100%)',
+      sunset: 'linear-gradient(135deg, #355c7d 0%, #6c5b7b 45%, #c06c84 100%)',
+      ocean: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+      forest: 'linear-gradient(135deg, #134e5e 0%, #3a7bd5 55%, #71b280 100%)',
+      mono: 'linear-gradient(160deg, #16191f 0%, #0b0d11 100%)'
+    }[name];
+    body.setProperty('--topbar-bg-image', grad || 'none');
+  } else if (value.startsWith('file://')) {
+    body.setProperty('--topbar-bg-image', `url("${value}")`);
+  }
+}
+
 function applyCustomLayout(layout) {
   const l = layout && typeof layout === 'object' ? layout : {};
   const hide = l.hide || {};

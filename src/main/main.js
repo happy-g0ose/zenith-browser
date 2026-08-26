@@ -827,26 +827,28 @@ function setupIPCHandlers() {
     if (t && t.view) t.view.webContents.stopFindInPage('clearSelection');
   });
 
-  // New tab wallpaper
-  ipcMain.handle('wallpaper:set-image', async () => {
+  // New tab / topbar wallpapers
+  const wallpaperPrefKey = (target) => target === 'topbar' ? 'ui.topbar.wallpaper' : 'ui.newtab.wallpaper';
+  ipcMain.handle('wallpaper:set-image', async (_e, target) => {
     const res = await dialog.showOpenDialog({
-      title: 'Р’С‹Р±РµСЂРёС‚Рµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ РґР»СЏ РЅРѕРІРѕР№ РІРєР»Р°РґРєРё',
+      title: 'Выберите изображение',
       properties: ['openFile'],
-      filters: [{ name: 'РР·РѕР±СЂР°Р¶РµРЅРёСЏ', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }]
+      filters: [{ name: 'Изображения', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }]
     });
     if (res.canceled || !res.filePaths[0]) return null;
-    const dest = path.join(app.getPath('userData'), 'newtab-wallpaper' + path.extname(res.filePaths[0]).toLowerCase());
+    const key = wallpaperPrefKey(target);
+    const dest = path.join(app.getPath('userData'), key.replace(/\./g, '_') + path.extname(res.filePaths[0]).toLowerCase());
     fs.copyFileSync(res.filePaths[0], dest);
     const pref = 'file:///' + dest.replace(/\\/g, '/');
-    configStore.setPref('ui.newtab.wallpaper', pref);
-    broadcastAll('wallpaper:changed', pref);
+    configStore.setPref(key, pref);
+    broadcastAll('wallpaper:changed', { target: target === 'topbar' ? 'topbar' : 'newtab', value: pref });
     return pref;
   });
-  ipcMain.handle('wallpaper:set-preset', (_e, value) => {
-    configStore.setPref('ui.newtab.wallpaper', String(value));
-    broadcastAll('wallpaper:changed', String(value));
+  ipcMain.handle('wallpaper:set-preset', (_e, value, target) => {
+    const key = wallpaperPrefKey(target);
+    configStore.setPref(key, String(value));
+    broadcastAll('wallpaper:changed', { target: target === 'topbar' ? 'topbar' : 'newtab', value: String(value) });
   });
-
   // Favicons (fetched via the requesting tab's session; no tabId = active tab)
   ipcMain.handle('favicon:get', (_e, { url, tabId }) => {
     const t = tabId ? tabs.find(x => x.id === tabId) : tabs.find(x => x.id === activeTabId);
