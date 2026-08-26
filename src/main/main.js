@@ -936,6 +936,7 @@ function setupIPCHandlers() {
 
     const ses = sessionManager.getOrCreateSession(configStore.getPref('browser.active_profile', 'profile_default'));
     let imported = 0, appBound = 0, failed = 0;
+    const failReasons = [];
 
     for (const [hostKey, name, encValue, plainValue, cPath, isSecure, isHttpOnly, expiresUtc, sameSite] of rows) {
       if (!hostKey || !name) continue;
@@ -963,12 +964,13 @@ function setupIPCHandlers() {
         imported++;
       } catch (e) {
         failed++;
+        if (failReasons.length < 8) failReasons.push(`${name}@${hostKey}: ${String(e && e.message).slice(0, 100)}`);
       }
     }
     db.close();
     try { fs.unlinkSync(tmp); } catch (e) {}
 
-    const summary = { ok: true, imported, appBound, failed };
+    const summary = { ok: true, imported, appBound, failed, failReasons };
     dialog.showMessageBox({
       type: 'info',
       message: `Импортировано кук: ${imported}`,
