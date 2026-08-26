@@ -91,9 +91,8 @@ class ConfigStore {
         vendor: 'Google Inc. (NVIDIA)',
         renderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 Direct3D11 vs_5_0 ps_5_0, D3D11)',
         hardwareConcurrency: 16,
-        deviceMemory: 32,
+        deviceMemory: 8,
         languages: ['en-US', 'en'],
-        timezone: 'America/New_York',
         screenWidth: 1920,
         screenHeight: 1080,
         devicePixelRatio: 1,
@@ -114,9 +113,8 @@ class ConfigStore {
         vendor: 'Apple Inc.',
         renderer: 'Apple M3 Pro',
         hardwareConcurrency: 12,
-        deviceMemory: 18,
+        deviceMemory: 8,
         languages: ['en-US', 'en'],
-        timezone: 'America/Los_Angeles',
         screenWidth: 2560,
         screenHeight: 1440,
         devicePixelRatio: 2,
@@ -132,12 +130,12 @@ class ConfigStore {
         color: '#f59e0b',
         isDefault: false,
         seed: 12489,
-        userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0',
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         platform: 'Linux x86_64',
         vendor: 'Mesa',
         renderer: 'Mesa Intel(R) UHD Graphics 630 (CFL GT2)',
         hardwareConcurrency: 8,
-        deviceMemory: 16,
+        deviceMemory: 8,
         languages: ['en-US', 'en'],
         timezone: 'America/Chicago',
         screenWidth: 1920,
@@ -252,15 +250,34 @@ class ConfigStore {
     this.profiles = this.readJSON(this.profilesFile, this.defaultProfiles);
     // Migrate stale Chrome/124 UA strings: Electron 34 is Chromium 132, and
     // the version mismatch is a bot signal Google cross-checks
-    let uaMigrated = false;
+    let profilesMigrated = false;
     this.profiles = this.profiles.map(p => {
-      if (p.userAgent && p.userAgent.includes('Chrome/124.0.0.0')) {
-        uaMigrated = true;
-        return { ...p, userAgent: p.userAgent.replace(/Chrome\/124\.0\.0\.0/g, 'Chrome/132.0.0.0') };
+      let np = p;
+      if (np.userAgent && np.userAgent.includes('Chrome/124.0.0.0')) {
+        profilesMigrated = true;
+        np = { ...np, userAgent: np.userAgent.replace(/Chrome\/124\.0\.0\.0/g, 'Chrome/132.0.0.0') };
       }
-      return p;
+      // A Chromium engine can never pass as Firefox (CDP, window.chrome and
+      // Sec-CH-UA all betray it) - swap mismatched UAs to the Chrome equivalent
+      if (np.userAgent && /Firefox\//.test(np.userAgent)) {
+        profilesMigrated = true;
+        np = { ...np, userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36' };
+      }
+      // Chromium caps navigator.deviceMemory at 8 - higher values are impossible
+      if (np.deviceMemory && np.deviceMemory > 8) {
+        profilesMigrated = true;
+        np = { ...np, deviceMemory: 8 };
+      }
+      // A spoofed timezone that contradicts the exit IP's geo is a captcha
+      // magnet - default to the real system clock unless the user opts in
+      if ('timezone' in np) {
+        profilesMigrated = true;
+        const { timezone, ...rest } = np;
+        np = rest;
+      }
+      return np;
     });
-    if (uaMigrated) this.writeJSON(this.profilesFile, this.profiles);
+    if (profilesMigrated) this.writeJSON(this.profilesFile, this.profiles);
     // DNT/Sec-GPC: real Chrome never sends these - flip legacy 'true' off,
     // otherwise Google flags every request as non-Chrome (captcha loops)
     if (this.prefs['privacy.shield.dnt_header'] === true) {

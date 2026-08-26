@@ -49,14 +49,13 @@ function generateStealthScript(profile) {
     // 1. CLOUDFLARE & CHROME RUNTIME EMULATION
     // =========================================================================
     try {
-      // Complete removal of automation indicators
+      // Complete removal of automation indicators.
+      // Real Chrome reports exactly false - undefined is a tamper tell
       Object.defineProperty(Navigator.prototype, 'webdriver', {
-        get: () => undefined,
+        get: () => false,
         configurable: true,
         enumerable: true
       });
-      delete Object.getPrototypeOf(navigator).webdriver;
-      delete navigator.webdriver;
 
       // Accurate window.chrome object including csi and loadTimes
       if (!window.chrome) {
@@ -117,14 +116,17 @@ function generateStealthScript(profile) {
         { brand: 'Google Chrome', version: '132' },
         { brand: 'Not-A.Brand', version: '99' }
       ];
+      const uaPlatform = PROFILE.platform === 'MacIntel' ? 'macOS' : (PROFILE.platform === 'Linux x86_64' ? 'Linux' : 'Windows');
+      const platformVersion = PROFILE.platform === 'Linux x86_64' ? '6.8.0' : '15.0.0';
+      const architecture = PROFILE.platform === 'MacIntel' ? 'arm' : 'x86';
 
       const userAgentData = {
         brands: brands,
         mobile: false,
-        platform: PROFILE.platform === 'MacIntel' ? 'macOS' : (PROFILE.platform === 'Linux x86_64' ? 'Linux' : 'Windows'),
+        platform: uaPlatform,
         getHighEntropyValues: maskFunction(function(hints) {
           return Promise.resolve({
-            architecture: 'x86',
+            architecture: architecture,
             bitness: '64',
             brands: brands,
             fullVersionList: [
@@ -134,15 +136,15 @@ function generateStealthScript(profile) {
             ],
             mobile: false,
             model: '',
-            platform: PROFILE.platform === 'MacIntel' ? 'macOS' : (PROFILE.platform === 'Linux x86_64' ? 'Linux' : 'Windows'),
-            platformVersion: '15.0.0'
+            platform: uaPlatform,
+            platformVersion: platformVersion
           });
         }, 'getHighEntropyValues'),
         toJSON: maskFunction(function() {
           return {
             brands: brands,
             mobile: false,
-            platform: PROFILE.platform === 'MacIntel' ? 'macOS' : 'Windows'
+            platform: uaPlatform
           };
         }, 'toJSON')
       };
@@ -223,20 +225,9 @@ function generateStealthScript(profile) {
                 onchange: null
               });
             }
-            if (parameters && parameters.name === 'notifications') {
-              return Promise.resolve({
-                state: 'denied',
-                name: 'notifications',
-                onchange: null
-              });
-            }
-            if (parameters && (parameters.name === 'camera' || parameters.name === 'microphone')) {
-              return Promise.resolve({
-                state: 'denied',
-                name: parameters.name,
-                onchange: null
-              });
-            }
+            // notifications/camera/microphone are NOT spoofed: a fresh real
+            // Chrome answers 'prompt', and contradicting Notification.permission
+            // is a known captcha/anti-bot cross-check
             return origQuery.apply(this, arguments);
           }, 'query');
         }
@@ -266,7 +257,11 @@ function generateStealthScript(profile) {
           Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => PROFILE.hardwareConcurrency, configurable: true, enumerable: true });
         }
         if (PROFILE.deviceMemory) {
-          Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => PROFILE.deviceMemory, configurable: true, enumerable: true });
+          // Chromium only ever reports {0.25,0.5,1,2,4,8} - it caps at 8 GB;
+          // a value like 32 is physically impossible and an instant flag
+          const memLadder = [0.25, 0.5, 1, 2, 4, 8];
+          const safeMem = memLadder.find(v => v >= PROFILE.deviceMemory) || 8;
+          Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => safeMem, configurable: true, enumerable: true });
         }
       }
       if (PROFILE.languages) {
@@ -307,11 +302,13 @@ function generateStealthScript(profile) {
         } catch(e) {}
       }
 
-      // 5. Plugins
+      // 5. Plugins - the exact five-entry PDF set modern Chrome ships
       const mockPlugins = [
         { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
         { name: 'Chrome PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
-        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' }
+        { name: 'Chromium PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+        { name: 'Microsoft Edge PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' },
+        { name: 'WebKit built-in PDF', filename: 'internal-pdf-viewer', description: 'Portable Document Format' }
       ];
       const pluginArray = Object.create(PluginArray.prototype);
       mockPlugins.forEach((p, idx) => {
@@ -319,11 +316,27 @@ function generateStealthScript(profile) {
         Object.defineProperty(plug, 'name', { value: p.name });
         Object.defineProperty(plug, 'filename', { value: p.filename });
         Object.defineProperty(plug, 'description', { value: p.description });
+        Object.defineProperty(plug, 'length', { value: 2 });
         pluginArray[idx] = plug;
         pluginArray[p.name] = plug;
       });
       Object.defineProperty(pluginArray, 'length', { value: mockPlugins.length });
       Object.defineProperty(Navigator.prototype, 'plugins', { get: () => pluginArray, configurable: true, enumerable: true });
+
+      // mimeTypes must stay in lockstep with plugins (2 PDF types per plugin)
+      const mimeTypes = Object.create(MimeTypeArray.prototype);
+      const pdfMimeTypes = ['application/pdf', 'text/pdf'];
+      pdfMimeTypes.forEach((type, idx) => {
+        const mt = Object.create(MimeType.prototype);
+        Object.defineProperty(mt, 'type', { value: type });
+        Object.defineProperty(mt, 'suffixes', { value: 'pdf' });
+        Object.defineProperty(mt, 'description', { value: 'Portable Document Format' });
+        Object.defineProperty(mt, 'enabledPlugin', { value: pluginArray[0] });
+        mimeTypes[idx] = mt;
+        mimeTypes[type] = mt;
+      });
+      Object.defineProperty(mimeTypes, 'length', { value: pdfMimeTypes.length });
+      Object.defineProperty(Navigator.prototype, 'mimeTypes', { get: () => mimeTypes, configurable: true, enumerable: true });
 
     } catch(e) {
       console.warn('Aegis: Cloudflare runtime init note:', e);
@@ -444,13 +457,22 @@ function generateStealthScript(profile) {
     if (PROFILE.audioNoise !== false) {
       try {
         const origGetChannelData = AudioBuffer.prototype.getChannelData;
+        const audioOffset = () => ((SEED % 100) - 50) * 1e-7 * ((PROFILE.audioNoiseLevel || 0.0001) / 0.0001);
         AudioBuffer.prototype.getChannelData = maskFunction(function(channel) {
           const data = origGetChannelData.apply(this, arguments);
-          const levelMul = (PROFILE.audioNoiseLevel || 0.0001) / 0.0001;
-          const noiseOffset = ((SEED % 100) - 50) * 1e-7 * levelMul;
+          const noiseOffset = audioOffset();
           for (let i = 0; i < data.length; i += 100) data[i] += noiseOffset;
           return data;
         }, 'getChannelData');
+        const origCopyFromChannel = AudioBuffer.prototype.copyFromChannel;
+        AudioBuffer.prototype.copyFromChannel = maskFunction(function(destination) {
+          const res = origCopyFromChannel.apply(this, arguments);
+          const noiseOffset = audioOffset();
+          if (destination && destination.length) {
+            for (let i = 0; i < destination.length; i += 100) destination[i] += noiseOffset;
+          }
+          return res;
+        }, 'copyFromChannel');
       } catch(e) {}
     }
 

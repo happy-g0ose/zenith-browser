@@ -104,7 +104,10 @@ class SessionManager {
 
     // 1. User Agent & Language
     if (profile.userAgent) {
-      ses.setUserAgent(profile.userAgent, (profile.languages && profile.languages.join(',')) || 'en-US,en');
+      // Array form: Electron formats Accept-Language with proper q-values
+      // ("ru-RU,ru;q=0.9,..."); a bare comma string goes out without them,
+      // which no real Chrome ever does
+      ses.setUserAgent(profile.userAgent, (profile.languages && profile.languages.length) ? profile.languages : ['en-US', 'en']);
     }
 
     // 2. Attach AdBlock Shield

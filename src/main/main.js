@@ -338,6 +338,10 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
       preload: sessionManager.getContentPreloadPath(tabProfile),
       contextIsolation: false,
       nodeIntegration: false,
+      // Stealth MUST cover subframes: reCAPTCHA/Cloudflare challenges run in
+      // cross-origin iframes, and an unspoofed frame next to a spoofed parent
+      // is the #1 captcha trigger
+      nodeIntegrationInSubFrames: true,
       sandbox: true
     }
   });
