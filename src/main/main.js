@@ -942,7 +942,10 @@ function setupIPCHandlers() {
       const value = decryptCookieValue(encValue, masterKey) || plainValue || '';
       if (value === null) { appBound++; continue; }
       const host = hostKey.replace(/^\./, '');
-      const scheme = (isSecure || host.startsWith('.').valueOf() === false && hostKey.startsWith('.')) || isSecure ? 'https' : 'https';
+      // Chromium enforces strict rules for __Host-/__Secure- prefixed cookies:
+      // __Host- must be secure, path=/ and have NO domain attribute at all
+      const isHostPrefix = name.startsWith('__Host-');
+      const isSecurePrefix = name.startsWith('__Secure-');
       const expirationDate = expiresUtc > 0 ? Math.floor(expiresUtc / 1e6 - 11644473600) : undefined;
       const samesiteMap = { 0: 'no_restriction', 1: 'lax', 2: 'strict' };
       try {
@@ -950,9 +953,9 @@ function setupIPCHandlers() {
           url: 'https://' + host + (cPath || '/'),
           name,
           value,
-          domain: hostKey.startsWith('.') ? hostKey : undefined,
-          path: cPath || '/',
-          secure: !!isSecure,
+          domain: (hostKey.startsWith('.') && !isHostPrefix) ? hostKey : undefined,
+          path: isHostPrefix ? '/' : (cPath || '/'),
+          secure: !!isSecure || isHostPrefix || isSecurePrefix,
           httpOnly: !!isHttpOnly,
           expirationDate: expirationDate && expirationDate > Math.floor(Date.now() / 1000) ? expirationDate : undefined,
           sameSite: samesiteMap[sameSite] || undefined
