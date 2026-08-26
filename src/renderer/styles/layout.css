@@ -70,7 +70,7 @@
   gap: 2px;
   height: 100%;
   padding: 0 4px;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -87,7 +87,7 @@
   border: 1px solid transparent;
   border-bottom: none;
   border-radius: 6px 6px 0 0;
-  color: var(--text-muted);
+  color: var(--tabstrip-fg, var(--text-muted));
   font-size: 12px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
@@ -117,9 +117,9 @@
 }
 
 .tab-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  background: var(--tabstrip-hover-bg, rgba(255, 255, 255, 0.05));
+  border-color: var(--tabstrip-border, rgba(255, 255, 255, 0.06));
+  color: var(--tabstrip-fg-strong, var(--text));
 }
 
 /* Active tab: clearly elevated, seamless flow into navbar */
@@ -200,7 +200,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: var(--tabstrip-fg, var(--text-dim)); flex-shrink: 0;
   margin: 0 4px;
   margin-bottom: 2px;
   transition: background 0.1s, color 0.1s;
@@ -230,7 +230,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
+  color: var(--tabstrip-fg, var(--text-dim));
   font-size: 11px;
   transition: background 0.1s, color 0.1s;
 }

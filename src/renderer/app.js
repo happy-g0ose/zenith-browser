@@ -110,6 +110,7 @@ async function applyUiPrefs() {
     const layout = await window.aegisAPI.getPref('ui.custom.layout');
     applyCustomLayout(layout);
   } catch (e) {}
+  updateTabstripContrast();
 }
 
 function setupWindowControls() {
@@ -191,6 +192,31 @@ function applyEngineUI(engineKey) {
 
 const appliedCustomVars = new Set();
 
+// Tabstrip contrast: when a bright --bg-tabstrip is set (custom or light
+// theme), tabstrip chrome (window buttons, +, inactive tab titles) must
+// flip to dark ink to stay readable
+function updateTabstripContrast() {
+  const raw = getComputedStyle(document.body).getPropertyValue('--bg-tabstrip').trim();
+  const m = raw.match(/^#([0-9a-fA-F]{6})$/);
+  const body = document.body.style;
+  if (!m) {
+    ['--tabstrip-fg', '--tabstrip-fg-strong', '--tabstrip-hover-bg', '--tabstrip-border'].forEach(v => body.removeProperty(v));
+    return;
+  }
+  const h = m[1];
+  const lum = 0.2126 * parseInt(h.slice(0, 2), 16) / 255
+            + 0.7152 * parseInt(h.slice(2, 4), 16) / 255
+            + 0.0722 * parseInt(h.slice(4, 6), 16) / 255;
+  if (lum > 0.45) {
+    body.setProperty('--tabstrip-fg', 'rgba(24, 27, 35, 0.78)');
+    body.setProperty('--tabstrip-fg-strong', '#14161e');
+    body.setProperty('--tabstrip-hover-bg', 'rgba(0, 0, 0, 0.08)');
+    body.setProperty('--tabstrip-border', 'rgba(0, 0, 0, 0.14)');
+  } else {
+    ['--tabstrip-fg', '--tabstrip-fg-strong', '--tabstrip-hover-bg', '--tabstrip-border'].forEach(v => body.removeProperty(v));
+  }
+}
+
 // ---- Layout editor (sizes + hidden parts) ----
 function applyCustomLayout(layout) {
   const l = layout && typeof layout === 'object' ? layout : {};
@@ -233,6 +259,7 @@ function applyCustomOverrides(overrides) {
   }
   appliedCustomVars.clear();
   next.forEach(n => appliedCustomVars.add(n));
+  updateTabstripContrast();
 }
 
 function renderExtStrip(icons) {
@@ -551,7 +578,10 @@ function applyThemeAttr(theme) {
   document.body.classList.add('theme-fade');
   document.body.setAttribute('data-theme', theme);
   clearTimeout(applyThemeAttr._t);
-  applyThemeAttr._t = setTimeout(() => document.body.classList.remove('theme-fade'), 380);
+  applyThemeAttr._t = setTimeout(() => {
+    document.body.classList.remove('theme-fade');
+    updateTabstripContrast();
+  }, 380);
 }
 
 function setTheme(theme) {
