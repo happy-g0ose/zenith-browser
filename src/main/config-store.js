@@ -27,8 +27,8 @@ class ConfigStore {
       'privacy.shield.block_trackers': true,
       'privacy.shield.block_ads': true,
       'privacy.shield.block_miners': true,
-      'privacy.shield.dnt_header': true,
-      'privacy.shield.gpc_header': true,
+      'privacy.shield.dnt_header': false, // off: real Chrome never sends DNT/Sec-GPC - sending them is a bot signal
+      'privacy.shield.gpc_header': false,
       'privacy.shield.https_only': false,
 
       // Stealth & Anti-Detect
@@ -261,6 +261,16 @@ class ConfigStore {
       return p;
     });
     if (uaMigrated) this.writeJSON(this.profilesFile, this.profiles);
+    // DNT/Sec-GPC: real Chrome never sends these - flip legacy 'true' off,
+    // otherwise Google flags every request as non-Chrome (captcha loops)
+    if (this.prefs['privacy.shield.dnt_header'] === true) {
+      this.prefs['privacy.shield.dnt_header'] = false;
+      this.writeJSONAsync(this.configFile, this.prefs);
+    }
+    if (this.prefs['privacy.shield.gpc_header'] === true) {
+      this.prefs['privacy.shield.gpc_header'] = false;
+      this.writeJSONAsync(this.configFile, this.prefs);
+    }
     this.bookmarks = this.readJSON(this.bookmarksFile, []);
     this.history = this.readJSON(this.historyFile, []);
 
