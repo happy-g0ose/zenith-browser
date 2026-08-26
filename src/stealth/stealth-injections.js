@@ -455,12 +455,101 @@ function generateStealthScript(profile) {
     }
 
     // =========================================================================
+    // 4b. WEBGPU IDENTITY (adapter.info leaks the real GPU above WebGL spoof)
+    // =========================================================================
+    if (PROFILE.webglSpoof !== false && navigator.gpu && navigator.gpu.requestAdapter) {
+      try {
+        const gpuIdentity = PROFILE.platform === 'MacIntel'
+          ? { vendor: 'apple', architecture: 'apple-m3-pro', device: 'Apple M3 Pro', description: 'Apple M3 Pro' }
+          : PROFILE.platform === 'Linux x86_64'
+            ? { vendor: 'mesa', architecture: 'radeonsi', device: PROFILE.renderer || 'Mesa GPU', description: PROFILE.renderer || 'Mesa GPU' }
+            : { vendor: 'nvidia', architecture: '', device: PROFILE.renderer || 'NVIDIA GeForce RTX 4080', description: PROFILE.renderer || 'NVIDIA GeForce RTX 4080' };
+
+        const origRequestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu);
+        navigator.gpu.requestAdapter = maskFunction(async function () {
+          const adapter = await origRequestAdapter.apply(navigator.gpu, arguments);
+          if (!adapter) return null;
+          try {
+            Object.defineProperty(adapter, 'info', { get: () => ({ ...gpuIdentity }), configurable: true });
+          } catch (e) {}
+          if (typeof adapter.requestAdapterInfo === 'function') {
+            adapter.requestAdapterInfo = maskFunction(async function () { return { ...gpuIdentity }; }, 'requestAdapterInfo');
+          }
+          return adapter;
+        }, 'requestAdapter');
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 4c. MEDIA DEVICES (real webcam/mic names and per-load device IDs leak)
+    // =========================================================================
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      try {
+        const hashStr = (s) => {
+          let h = SEED;
+          for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) >>> 0;
+          return h.toString(36);
+        };
+        const origEnumerate = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+        navigator.mediaDevices.enumerateDevices = maskFunction(async function () {
+          const devices = await origEnumerate();
+          if (!devices.length) return devices;
+          return devices.map(d => ({
+            deviceId: hashStr('dev' + d.kind + (d.deviceId || '')),
+            kind: d.kind,
+            label: d.label,
+            groupId: hashStr('grp' + d.kind + (d.groupId || '')),
+            toJSON() { return this; }
+          }));
+        }, 'enumerateDevices');
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // 4d. SPEECH VOICES (OS voice list reveals the real system)
+    // =========================================================================
+    if (window.speechSynthesis && speechSynthesis.getVoices) {
+      try {
+        const fakeVoices = [
+          { name: 'Google US English', lang: 'en-US', default: true, localService: false, voiceURI: 'Google US English' },
+          { name: 'Google UK English Male', lang: 'en-GB', default: false, localService: false, voiceURI: 'Google UK English Male' },
+          { name: 'Google UK English Female', lang: 'en-GB', default: false, localService: false, voiceURI: 'Google UK English Female' }
+        ].map(v => {
+          const vs = Object.create(SpeechSynthesisVoice.prototype);
+          Object.defineProperty(vs, 'name', { value: v.name });
+          Object.defineProperty(vs, 'lang', { value: v.lang });
+          Object.defineProperty(vs, 'default', { value: v.default });
+          Object.defineProperty(vs, 'localService', { value: v.localService });
+          Object.defineProperty(vs, 'voiceURI', { value: v.voiceURI });
+          return vs;
+        });
+        speechSynthesis.getVoices = maskFunction(function () { return fakeVoices; }, 'getVoices');
+      } catch (e) {}
+    }
+
+    // =========================================================================
     // 5. WEBRTC LEAK PROTECTION
     // =========================================================================
     if (PROFILE.webrtcMode && PROFILE.webrtcMode !== 'default') {
       try {
-        if (PROFILE.webrtcMode === 'disable_all') {
-          window.RTCPeerConnection = undefined;
+        if (PROFILE.webrtcMode === 'disable_all' && window.RTCPeerConnection) {
+          // Keep the object alive (undefined is an instant detection) but
+          // strip every ICE candidate: the connection looks like it sits
+          // behind a strict firewall - plausible, and nothing leaks
+          const stripCandidates = (name) => {
+            const orig = RTCPeerConnection.prototype[name];
+            if (!orig) return;
+            RTCPeerConnection.prototype[name] = maskFunction(function() {
+              return orig.apply(this, arguments).then(desc => {
+                if (desc && desc.sdp) {
+                  desc.sdp = desc.sdp.replace(/^a=candidate:.*$/gmi, '').replace(/\\r\\n\\r\\n/g, '\\r\\n');
+                }
+                return desc;
+              });
+            }, name);
+          };
+          stripCandidates('createOffer');
+          stripCandidates('createAnswer');
         } else if (window.RTCPeerConnection) {
           const origCreateOffer = RTCPeerConnection.prototype.createOffer;
           RTCPeerConnection.prototype.createOffer = maskFunction(function() {

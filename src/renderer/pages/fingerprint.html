@@ -198,6 +198,10 @@
     }
     
     .text-success { color: var(--success); }
+.text-warning { color: var(--warning, #d29922); }
+.text-danger { color: var(--danger, #f85149); }
+.dot-warning { background: var(--warning, #d29922); }
+.dot-danger { background: var(--danger, #f85149); }
     .text-spoofed { color: var(--accent); }
     .text-small { font-size: 0.75rem; }
   </style>
@@ -412,6 +416,21 @@
             <td class="value text-success">Blocked by Shield</td>
           </tr>
         </table>
+      </div>
+      <!-- 8. CONSISTENCY LIGHTS -->
+      <div class="card" id="consistency-card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <span class="dot-indicator dot-success"></span> Консистентность личности (светофор)
+          </div>
+          <span class="text-small" id="consistency-summary">Проверка...</span>
+        </div>
+        <table class="info-table" id="consistency-table">
+          <tr><td class="label" colspan="2" style="text-align:center; color: var(--text-muted);">Анализ...</td></tr>
+        </table>
+        <p class="text-small" style="margin-top:10px; color: var(--text-muted);">
+          Зелёный — сигналы согласованы. Жёлтый — подозрительно, но не критично. Красный — сайт может заподозрить бота.
+        </p>
       </div>
     </div>
   </div>
