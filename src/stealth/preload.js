@@ -51,6 +51,7 @@ if (isInternalPage) {
     clearHistory: () => ipcRenderer.invoke('history:clear'),
     removeHistory: (url) => ipcRenderer.invoke('history:remove', url),
     getFavicon: (url, tabId) => ipcRenderer.invoke('favicon:get', { url, tabId }),
+    importOperaCookies: () => ipcRenderer.invoke('cookies:import-opera'),
     onBookmarksChanged: (callback) => ipcRenderer.on('bookmarks:changed', () => callback()),
 
     // Tabs Actions

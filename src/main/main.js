@@ -856,6 +856,126 @@ function setupIPCHandlers() {
     return fetchFavicon(url, wc);
   });
 
+  // Favicons (fetched via the requesting tab's session; no tabId = active tab)
+  ipcMain.handle('favicon:get', (_e, { url, tabId }) => {
+    const t = tabId ? tabs.find(x => x.id === tabId) : tabs.find(x => x.id === activeTabId);
+    const wc = t && t.view ? t.view.webContents : null;
+    return fetchFavicon(url, wc);
+  });
+
+  // Import cookies from local Opera into the active profile session
+  const { execFile } = require('child_process');
+  const dpapiDecrypt = (b64) => new Promise((resolve, reject) => {
+    execFile('powershell.exe', ['-NoProfile', '-Command',
+      `Add-Type -AssemblyName System.Security; [Convert]::ToBase64String([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String('${b64}'), $null, [Security.Cryptography.DataProtectionScope]::CurrentUser))`
+    ], { encoding: 'utf8', windowsHide: true }, (err, stdout) => err ? reject(err) : resolve(stdout.trim()));
+  });
+
+  function decryptCookieValue(buf, masterKey) {
+    if (!buf || buf.length === 0) return '';
+    const prefix = buf.slice(0, 3).toString('latin1');
+    if (prefix === 'v20') return null; // app-bound encryption: not portable
+    if (prefix === 'v10' || prefix === 'v11') {
+      if (!masterKey) return null;
+      try {
+        const iv = buf.slice(3, 15);
+        const payload = buf.slice(15);
+        const tag = payload.slice(payload.length - 16);
+        const cipher = payload.slice(0, payload.length - 16);
+        const d = require('crypto').createDecipheriv('aes-256-gcm', masterKey, iv);
+        d.setAuthTag(tag);
+        return Buffer.concat([d.update(cipher), d.final()]).toString('utf8');
+      } catch (e) {
+        return null;
+      }
+    }
+    return buf.toString('utf8');
+  }
+
+  ipcMain.handle('cookies:import-opera', async () => {
+    const os = require('os');
+    const operaRoots = [
+      path.join(process.env.APPDATA || '', 'Opera Software', 'Opera Stable'),
+      path.join(process.env.APPDATA || '', 'Opera Software', 'Opera GX Stable')
+    ];
+    const dbCandidates = [
+      ...operaRoots.map(r => path.join(r, 'Default', 'Network', 'Cookies')),
+      ...operaRoots.map(r => path.join(r, 'Default', 'Cookies'))
+    ];
+    const dbPath = dbCandidates.find(p => fs.existsSync(p));
+    if (!dbPath) return { ok: false, error: 'Куки Opera не найдены (проверено: Opera Stable / Opera GX)' };
+
+    let masterKey = null;
+    try {
+      const localState = JSON.parse(fs.readFileSync(path.join(path.dirname(dbPath.split('Default')[0]), 'Local State'), 'utf8'));
+      const encKey = Buffer.from(localState.os_crypt.encrypted_key, 'base64').slice(5); // strip 'DPAPI'
+      masterKey = Buffer.from(await dpapiDecrypt(encKey.toString('base64')), 'base64');
+    } catch (e) {
+      masterKey = null;
+    }
+
+    // Opera locks the DB exclusively while running (anti-stealth measure).
+    // Try a direct read first (works when Opera is closed), then esentutl.
+    const tmp = path.join(os.tmpdir(), 'zenith-opera-cookies.db');
+    let dbBuf;
+    try {
+      dbBuf = fs.readFileSync(dbPath);
+    } catch (e) {
+      try {
+        execFileSync('esentutl.exe', ['/y', dbPath, '/d', tmp, '/o'], { windowsHide: true, stdio: 'ignore' });
+        dbBuf = fs.readFileSync(tmp);
+      } catch (e2) {
+        return { ok: false, error: 'Opera сейчас открыта и блокирует файл кук. Закройте Opera и попробуйте импорт снова.' };
+      }
+    }
+
+    const initSqlJs = require('sql.js');
+    const SQL = await initSqlJs();
+    const db = new SQL.Database(dbBuf);
+
+    const res = db.exec('SELECT host_key, name, encrypted_value, value, path, is_secure, is_httponly, expires_utc, samesite FROM cookies');
+    const rows = res.length ? res[0].values : [];
+
+    const ses = sessionManager.getOrCreateSession(configStore.getPref('browser.active_profile', 'profile_default'));
+    let imported = 0, appBound = 0, failed = 0;
+
+    for (const [hostKey, name, encValue, plainValue, cPath, isSecure, isHttpOnly, expiresUtc, sameSite] of rows) {
+      if (!hostKey || !name) continue;
+      const value = decryptCookieValue(encValue, masterKey) || plainValue || '';
+      if (value === null) { appBound++; continue; }
+      const host = hostKey.replace(/^\./, '');
+      const scheme = (isSecure || host.startsWith('.').valueOf() === false && hostKey.startsWith('.')) || isSecure ? 'https' : 'https';
+      const expirationDate = expiresUtc > 0 ? Math.floor(expiresUtc / 1e6 - 11644473600) : undefined;
+      const samesiteMap = { 0: 'no_restriction', 1: 'lax', 2: 'strict' };
+      try {
+        await ses.cookies.set({
+          url: 'https://' + host + (cPath || '/'),
+          name,
+          value,
+          domain: hostKey.startsWith('.') ? hostKey : undefined,
+          path: cPath || '/',
+          secure: !!isSecure,
+          httpOnly: !!isHttpOnly,
+          expirationDate: expirationDate && expirationDate > Math.floor(Date.now() / 1000) ? expirationDate : undefined,
+          sameSite: samesiteMap[sameSite] || undefined
+        });
+        imported++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    db.close();
+    try { fs.unlinkSync(tmp); } catch (e) {}
+
+    const summary = { ok: true, imported, appBound, failed };
+    dialog.showMessageBox({
+      type: 'info',
+      message: `Импортировано кук: ${imported}`,
+      detail: `Пропущено (app-bound шифрование): ${appBound} · Ошибок: ${failed}. Куки загружены в активный профиль — открой нужный сайт и ты уже залогинен.`
+    });
+    return summary;
+  });
+
   ipcMain.handle('history:remove', (_e, url) => {
     configStore.removeHistoryItem(url);
   });

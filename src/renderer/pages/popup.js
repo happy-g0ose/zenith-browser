@@ -153,6 +153,18 @@ function fmtSize(bytes) {
   return v.toFixed(v >= 10 || i === 0 ? 0 : 1) + ' ' + u[i];
 }
 
+const DL_COLORS = ['#5b8def', '#3ecf8e', '#d29922', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+function dlChip(name) {
+  const ext = (name.split('.').pop() || '?').slice(0, 4).toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return `<span class="dl-ico" style="background:${DL_COLORS[hash % DL_COLORS.length]}">${esc(ext)}</span>`;
+}
+
+const ICON_OPEN = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+const ICON_FOLDER = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>';
+
 async function renderDownloads() {
   let list = [];
   try { list = (await window.aegisAPI.getDownloads()) || []; } catch (e) {}
@@ -160,27 +172,36 @@ async function renderDownloads() {
 
   const rows = list.map(d => {
     const pct = d.total ? Math.round((d.received / d.total) * 100) : (d.state === 'done' ? 100 : 0);
-    const stateText = d.state === 'done' ? fmtSize(d.total || d.received)
+    const progressing = d.state === 'progressing' || d.state === 'paused';
+    const sizeText = d.state === 'done'
+      ? fmtSize(d.total || d.received)
       : d.state === 'cancelled' ? 'Отменено'
       : d.state === 'paused' ? 'Пауза · ' + fmtSize(d.received)
-      : fmtSize(d.received) + (d.total ? ' из ' + fmtSize(d.total) : '');
+      : fmtSize(d.received) + (d.total ? ' / ' + fmtSize(d.total) : '');
+    const bar = progressing ? `<div class="dl-bar"><div class="dl-fill" style="width:${pct}%"></div></div>` : '';
+    const openBtn = d.state === 'done'
+      ? `<button class="dl-mini-btn dl-open" data-id="${esc(d.id)}" title="Открыть файл">${ICON_OPEN}</button>`
+      : '';
     return `
       <div class="dl-row">
-        <div class="dl-top">
-          <span class="dl-name" title="${esc(d.name)}">${esc(d.name)}</span>
-          <span class="dl-size">${stateText}</span>
+        ${dlChip(d.name)}
+        <div class="dl-main">
+          <div class="dl-top">
+            <span class="dl-name" title="${esc(d.name)}">${esc(d.name)}</span>
+            <span class="dl-size">${sizeText}</span>
+          </div>
+          ${bar}
         </div>
-        <div class="dl-bar"><div class="dl-fill${d.state === 'done' ? ' done' : ''}" style="width:${pct}%"></div></div>
         <div class="dl-btns">
-          ${d.state === 'done' ? `<button class="ext-manage dl-open" data-id="${esc(d.id)}">Открыть</button>` : ''}
-          <button class="ext-manage dl-show" data-id="${esc(d.id)}">Папка</button>
+          ${openBtn}
+          <button class="dl-mini-btn dl-show" data-id="${esc(d.id)}" title="Показать в папке">${ICON_FOLDER}</button>
         </div>
       </div>`;
   }).join('');
 
   panel.innerHTML = `
     <div class="popup-header"><span class="popup-title">Загрузки</span></div>
-    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-top:4px">
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-top:4px">
       ${rows || '<div class="ext-empty">Загрузок пока нет</div>'}
     </div>`;
 
@@ -390,6 +411,7 @@ const PALETTE_COMMANDS = [
       const cur = await window.aegisAPI.getPref('ui.force_dark', false);
       await window.aegisAPI.setPref('ui.force_dark', !cur);
     } },
+  { title: 'Импортировать куки из Opera',   key: 'Migration',     kw: 'куки cookies opera импорт миграция логин сессии', run: () => window.aegisAPI.importOperaCookies() },
   { title: 'Сбросить счётчик блокировок',   key: 'Privacy',       kw: 'сброс блокировки счётчик щит privacy', run: () => window.aegisAPI.resetShieldStats() },
   { title: 'Очистить историю',              key: 'Privacy',       kw: 'история очистить удалить history', run: () => window.aegisAPI.clearHistory() },
   { title: 'Тема: Stealth Dark',            key: 'Theme',         kw: 'тема stealth dark',            run: () => window.aegisAPI.setPref('ui.theme', 'stealth-dark') },
