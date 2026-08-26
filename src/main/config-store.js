@@ -86,7 +86,7 @@ class ConfigStore {
         color: '#6366f1',
         isDefault: true,
         seed: 48291,
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         platform: 'Win32',
         vendor: 'Google Inc. (NVIDIA)',
         renderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 Direct3D11 vs_5_0 ps_5_0, D3D11)',
@@ -109,7 +109,7 @@ class ConfigStore {
         color: '#10b981',
         isDefault: false,
         seed: 93821,
-        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         platform: 'MacIntel',
         vendor: 'Apple Inc.',
         renderer: 'Apple M3 Pro',
@@ -250,6 +250,17 @@ class ConfigStore {
     this.prefs = this.readJSON(this.configFile, this.defaultPrefs);
     this.pruneUnknownPrefs();
     this.profiles = this.readJSON(this.profilesFile, this.defaultProfiles);
+    // Migrate stale Chrome/124 UA strings: Electron 34 is Chromium 132, and
+    // the version mismatch is a bot signal Google cross-checks
+    let uaMigrated = false;
+    this.profiles = this.profiles.map(p => {
+      if (p.userAgent && p.userAgent.includes('Chrome/124.0.0.0')) {
+        uaMigrated = true;
+        return { ...p, userAgent: p.userAgent.replace(/Chrome\/124\.0\.0\.0/g, 'Chrome/132.0.0.0') };
+      }
+      return p;
+    });
+    if (uaMigrated) this.writeJSON(this.profilesFile, this.profiles);
     this.bookmarks = this.readJSON(this.bookmarksFile, []);
     this.history = this.readJSON(this.historyFile, []);
 
@@ -407,7 +418,7 @@ class ConfigStore {
       {
         os: 'Windows 11',
         platform: 'Win32',
-        ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         vendor: 'Google Inc. (NVIDIA)',
         renderers: [
           'ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 Direct3D11 vs_5_0 ps_5_0, D3D11)',
@@ -418,14 +429,14 @@ class ConfigStore {
       {
         os: 'macOS Sonoma',
         platform: 'MacIntel',
-        ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         vendor: 'Apple Inc.',
         renderers: ['Apple M2 Max', 'Apple M3 Pro', 'Apple M1']
       },
       {
         os: 'Linux Ubuntu',
         platform: 'Linux x86_64',
-        ua: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        ua: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
         vendor: 'Mesa/X.org',
         renderers: [
           'Mesa Intel(R) UHD Graphics 770 (ADL-S GT1)',

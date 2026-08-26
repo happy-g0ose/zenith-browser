@@ -150,6 +150,21 @@ class AdblockShield {
     ses.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
       const requestHeaders = { ...details.requestHeaders };
 
+      // Client Hints consistency: Chromium emits its REAL engine version in
+      // Sec-CH-UA* headers. A spoofed UA claiming a different Chrome version
+      // is the classic bot signal Google cross-checks - rewrite them to match.
+      const ua = requestHeaders['User-Agent'] || ses.getUserAgent() || '';
+      const vMatch = ua.match(/Chrome\/(\d+)(?:\.(\d+)\.(\d+)\.(\d+))?/);
+      if (vMatch) {
+        const major = vMatch[1];
+        const full = [vMatch[2], vMatch[3], vMatch[4]].filter(Boolean).join('.') || `${major}.0.0.0`;
+        const plat = /Windows/i.test(ua) ? '"Windows"' : /Macintosh|Mac OS/i.test(ua) ? '"macOS"' : /Linux/i.test(ua) ? '"Linux"' : /Android/i.test(ua) ? '"Android"' : '"Windows"';
+        requestHeaders['Sec-CH-UA'] = `"Chromium";v="${major}", "Google Chrome";v="${major}", "Not-A.Brand";v="99"`;
+        requestHeaders['Sec-CH-UA-Full-Version-List'] = `"Chromium";v="${full}", "Google Chrome";v="${full}", "Not-A.Brand";v="99.0.0.0"`;
+        requestHeaders['Sec-CH-UA-Mobile'] = '?0';
+        requestHeaders['Sec-CH-UA-Platform'] = plat;
+      }
+
       if (this.configStore.getPref('privacy.shield.dnt_header', true)) {
         requestHeaders['DNT'] = '1';
       }

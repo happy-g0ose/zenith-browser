@@ -113,8 +113,8 @@ function generateStealthScript(profile) {
 
       // 2. Full navigator.userAgentData (Client Hints for Cloudflare)
       const brands = [
-        { brand: 'Chromium', version: '124' },
-        { brand: 'Google Chrome', version: '124' },
+        { brand: 'Chromium', version: '132' },
+        { brand: 'Google Chrome', version: '132' },
         { brand: 'Not-A.Brand', version: '99' }
       ];
 
@@ -128,8 +128,8 @@ function generateStealthScript(profile) {
             bitness: '64',
             brands: brands,
             fullVersionList: [
-              { brand: 'Chromium', version: '124.0.6367.207' },
-              { brand: 'Google Chrome', version: '124.0.6367.207' },
+              { brand: 'Chromium', version: '132.0.6836.0' },
+              { brand: 'Google Chrome', version: '132.0.6836.0' },
               { brand: 'Not-A.Brand', version: '99.0.0.0' }
             ],
             mobile: false,
