@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 30px;
+  height: min(30px, var(--tabstrip-h));
   padding: 0 10px;
   flex: 0 1 auto;
   min-width: 48px;
@@ -131,7 +131,7 @@
 .tab-item.active {
   background: var(--bg-navbar, #1a1d24);
   color: var(--text-bright);
-  height: 32px;
+  height: min(32px, var(--tabstrip-h));
   border-color: rgba(255, 255, 255, 0.08);
   border-bottom: none;
   font-weight: 500;
@@ -200,8 +200,8 @@
 }
 
 .btn-new-tab {
-  width: 28px;
-  height: 28px;
+  width: min(28px, calc(var(--tabstrip-h) - 8px));
+  height: min(28px, calc(var(--tabstrip-h) - 8px));
   border-radius: 6px;
   display: flex;
   align-items: center;
