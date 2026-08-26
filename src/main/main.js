@@ -1,4 +1,4 @@
-const { app, BrowserWindow, WebContentsView, ipcMain, Menu, MenuItem, protocol, net, dialog, shell, nativeTheme } = require('electron');
+﻿const { app, BrowserWindow, WebContentsView, ipcMain, Menu, MenuItem, protocol, net, dialog, shell, nativeTheme, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -157,6 +157,14 @@ function trackDownload(item) {
   });
 }
 
+
+// Broadcast to every renderer (shell, all tab views, popups) - internal pages
+// like the new tab live in their own WebContentsView and must hear events too
+function broadcastAll(channel, payload) {
+  for (const wc of webContents.getAllWebContents()) {
+    if (!wc.isDestroyed()) wc.send(channel, payload);
+  }
+}
 function activeView() {
   const t = tabs.find(x => x.id === activeTabId);
   return t && t.view ? t.view.webContents : null;
@@ -173,29 +181,29 @@ function buildContextMenu(wc, params) {
   const add = (opts) => menu.append(new MenuItem(opts));
 
   if (params.linkURL) {
-    add({ label: 'Открыть ссылку в новой вкладке', click: () => createTab(params.linkURL) });
-    add({ label: 'Копировать адрес ссылки', click: () => require('electron').clipboard.writeText(params.linkURL) });
+    add({ label: 'РћС‚РєСЂС‹С‚СЊ СЃСЃС‹Р»РєСѓ РІ РЅРѕРІРѕР№ РІРєР»Р°РґРєРµ', click: () => createTab(params.linkURL) });
+    add({ label: 'РљРѕРїРёСЂРѕРІР°С‚СЊ Р°РґСЂРµСЃ СЃСЃС‹Р»РєРё', click: () => require('electron').clipboard.writeText(params.linkURL) });
     add({ type: 'separator' });
   }
   if (params.hasImageContents && params.srcURL) {
-    add({ label: 'Открыть изображение в новой вкладке', click: () => createTab(params.srcURL) });
-    add({ label: 'Сохранить изображение', click: () => wc.downloadURL(params.srcURL) });
+    add({ label: 'РћС‚РєСЂС‹С‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ РІ РЅРѕРІРѕР№ РІРєР»Р°РґРєРµ', click: () => createTab(params.srcURL) });
+    add({ label: 'РЎРѕС…СЂР°РЅРёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ', click: () => wc.downloadURL(params.srcURL) });
     add({ type: 'separator' });
   }
   if (params.isEditable) {
-    add({ role: 'cut', label: 'Вырезать' });
-    add({ role: 'copy', label: 'Копировать' });
-    add({ role: 'paste', label: 'Вставить' });
+    add({ role: 'cut', label: 'Р’С‹СЂРµР·Р°С‚СЊ' });
+    add({ role: 'copy', label: 'РљРѕРїРёСЂРѕРІР°С‚СЊ' });
+    add({ role: 'paste', label: 'Р’СЃС‚Р°РІРёС‚СЊ' });
     add({ type: 'separator' });
   } else if (params.selectionText.trim()) {
-    add({ label: 'Копировать', role: 'copy' });
+    add({ label: 'РљРѕРїРёСЂРѕРІР°С‚СЊ', role: 'copy' });
     add({ type: 'separator' });
   }
-  add({ label: 'Назад', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
-  add({ label: 'Вперёд', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
-  add({ label: 'Перезагрузить', click: () => wc.reload() });
+  add({ label: 'РќР°Р·Р°Рґ', enabled: wc.navigationHistory.canGoBack(), click: () => wc.navigationHistory.goBack() });
+  add({ label: 'Р’РїРµСЂС‘Рґ', enabled: wc.navigationHistory.canGoForward(), click: () => wc.navigationHistory.goForward() });
+  add({ label: 'РџРµСЂРµР·Р°РіСЂСѓР·РёС‚СЊ', click: () => wc.reload() });
   add({ type: 'separator' });
-  add({ label: 'Проверить элемент', click: () => { wc.inspectElement(params.x, params.y); } });
+  add({ label: 'РџСЂРѕРІРµСЂРёС‚СЊ СЌР»РµРјРµРЅС‚', click: () => { wc.inspectElement(params.x, params.y); } });
 
   menu.popup({ window: mainWindow });
 }
@@ -258,7 +266,7 @@ function getDisplayUrl(resolvedUrl) {
 function getErrorPageUrl(failedUrl, description, errorCode) {
   const fileUrl = pathToFileURL(path.join(__dirname, '../renderer/pages/error.html'));
   fileUrl.searchParams.set('url', failedUrl || '');
-  fileUrl.searchParams.set('desc', description || 'Неизвестная ошибка сети');
+  fileUrl.searchParams.set('desc', description || 'РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕС€РёР±РєР° СЃРµС‚Рё');
   fileUrl.searchParams.set('code', String(errorCode || 0));
   return fileUrl.toString();
 }
@@ -400,7 +408,7 @@ async function createTab(initialUrl = 'about:newtab', profileId = null, isIncogn
     if (!isMainFrame || errorCode === -3) return;
     tabData.failedUrl = validatedURL || '';
     tabData.lastFailedUrl = validatedURL || '';
-    tabData.title = 'Страница не загрузилась';
+    tabData.title = 'РЎС‚СЂР°РЅРёС†Р° РЅРµ Р·Р°РіСЂСѓР·РёР»Р°СЃСЊ';
     view.webContents.loadURL(getErrorPageUrl(validatedURL, errorDescription, errorCode));
     notifyTabsUpdatedSoon();
   });
@@ -634,17 +642,17 @@ function setupIPCHandlers() {
       mainWindow.webContents.send('theme:changed', val);
     }
     if (key === 'ui.search.default_engine') {
-      mainWindow.webContents.send('engine:changed', val);
+      broadcastAll('engine:changed', val);
     }
     if (key === 'ui.custom.overrides') {
-      mainWindow.webContents.send('custom:changed', val);
+      broadcastAll('custom:changed', val);
     }
     if (key === 'ui.sites_theme') {
       const mode = ['system', 'dark', 'light'].includes(val) ? val : 'system';
       nativeTheme.themeSource = mode;
     }
     if (key === 'ui.custom.layout') {
-      mainWindow.webContents.send('custom:layout', val);
+      broadcastAll('custom:layout', val);
       updateViewBounds();
     }
   });
@@ -706,7 +714,7 @@ function setupIPCHandlers() {
   });
 
   // Bookmarks & History
-  const bookmarksChanged = () => mainWindow && mainWindow.webContents.send('bookmarks:changed');
+  const bookmarksChanged = () => broadcastAll('bookmarks:changed');
   ipcMain.handle('bookmarks:get', () => configStore.getBookmarks());
   ipcMain.handle('bookmarks:add', (_e, b) => { const r = configStore.addBookmark(b); bookmarksChanged(); return r; });
   ipcMain.handle('bookmarks:remove', (_e, url) => { configStore.removeBookmark(url); bookmarksChanged(); });
@@ -822,21 +830,21 @@ function setupIPCHandlers() {
   // New tab wallpaper
   ipcMain.handle('wallpaper:set-image', async () => {
     const res = await dialog.showOpenDialog({
-      title: 'Выберите изображение для новой вкладки',
+      title: 'Р’С‹Р±РµСЂРёС‚Рµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ РґР»СЏ РЅРѕРІРѕР№ РІРєР»Р°РґРєРё',
       properties: ['openFile'],
-      filters: [{ name: 'Изображения', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }]
+      filters: [{ name: 'РР·РѕР±СЂР°Р¶РµРЅРёСЏ', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] }]
     });
     if (res.canceled || !res.filePaths[0]) return null;
     const dest = path.join(app.getPath('userData'), 'newtab-wallpaper' + path.extname(res.filePaths[0]).toLowerCase());
     fs.copyFileSync(res.filePaths[0], dest);
     const pref = 'file:///' + dest.replace(/\\/g, '/');
     configStore.setPref('ui.newtab.wallpaper', pref);
-    mainWindow.webContents.send('wallpaper:changed', pref);
+    broadcastAll('wallpaper:changed', pref);
     return pref;
   });
   ipcMain.handle('wallpaper:set-preset', (_e, value) => {
     configStore.setPref('ui.newtab.wallpaper', String(value));
-    mainWindow.webContents.send('wallpaper:changed', String(value));
+    broadcastAll('wallpaper:changed', String(value));
   });
 
   // Favicons (fetched via the requesting tab's session; no tabId = active tab)
@@ -1007,37 +1015,37 @@ function setupAppMenu() {
 
   const template = [
     {
-      label: '&Файл',
+      label: '&Р¤Р°Р№Р»',
       submenu: [
-        { label: 'Новая вкладка', accelerator: 'CommandOrControl+T', click: () => createTab('about:newtab') },
-        { label: 'Новая инкогнито-вкладка', accelerator: 'CommandOrControl+Shift+N', click: () => createTab('about:newtab', null, true) },
-        { label: 'Закрыть вкладку', accelerator: 'CommandOrControl+W', click: () => { if (activeTabId) closeTab(activeTabId); } },
-        { label: 'Вернуть закрытую вкладку', accelerator: 'CommandOrControl+Shift+T', click: () => restoreClosedTab() },
-        { label: 'Новое окно поиска на странице', accelerator: 'CommandOrControl+F', click: () => mainWindow && mainWindow.webContents.send('action:find') },
+        { label: 'РќРѕРІР°СЏ РІРєР»Р°РґРєР°', accelerator: 'CommandOrControl+T', click: () => createTab('about:newtab') },
+        { label: 'РќРѕРІР°СЏ РёРЅРєРѕРіРЅРёС‚Рѕ-РІРєР»Р°РґРєР°', accelerator: 'CommandOrControl+Shift+N', click: () => createTab('about:newtab', null, true) },
+        { label: 'Р—Р°РєСЂС‹С‚СЊ РІРєР»Р°РґРєСѓ', accelerator: 'CommandOrControl+W', click: () => { if (activeTabId) closeTab(activeTabId); } },
+        { label: 'Р’РµСЂРЅСѓС‚СЊ Р·Р°РєСЂС‹С‚СѓСЋ РІРєР»Р°РґРєСѓ', accelerator: 'CommandOrControl+Shift+T', click: () => restoreClosedTab() },
+        { label: 'РќРѕРІРѕРµ РѕРєРЅРѕ РїРѕРёСЃРєР° РЅР° СЃС‚СЂР°РЅРёС†Рµ', accelerator: 'CommandOrControl+F', click: () => mainWindow && mainWindow.webContents.send('action:find') },
         { type: 'separator' },
-        { role: 'quit', label: 'Выход' }
+        { role: 'quit', label: 'Р’С‹С…РѕРґ' }
       ]
     },
     {
-      label: '&Правка',
+      label: '&РџСЂР°РІРєР°',
       submenu: [
-        { role: 'undo', label: 'Отменить' },
-        { role: 'redo', label: 'Повторить' },
+        { role: 'undo', label: 'РћС‚РјРµРЅРёС‚СЊ' },
+        { role: 'redo', label: 'РџРѕРІС‚РѕСЂРёС‚СЊ' },
         { type: 'separator' },
-        { role: 'cut', label: 'Вырезать' },
-        { role: 'copy', label: 'Копировать' },
-        { role: 'paste', label: 'Вставить' },
-        { role: 'selectAll', label: 'Выделить всё' }
+        { role: 'cut', label: 'Р’С‹СЂРµР·Р°С‚СЊ' },
+        { role: 'copy', label: 'РљРѕРїРёСЂРѕРІР°С‚СЊ' },
+        { role: 'paste', label: 'Р’СЃС‚Р°РІРёС‚СЊ' },
+        { role: 'selectAll', label: 'Р’С‹РґРµР»РёС‚СЊ РІСЃС‘' }
       ]
     },
     {
-      label: '&Вид',
+      label: '&Р’РёРґ',
       submenu: [
-        { label: 'Командная палитра', accelerator: 'CommandOrControl+K', click: () => mainWindow && mainWindow.webContents.send('action:toggle-palette') },
-        { label: 'Адресная строка', accelerator: 'CommandOrControl+L', click: () => mainWindow && mainWindow.webContents.send('action:focus-omnibox') },
+        { label: 'РљРѕРјР°РЅРґРЅР°СЏ РїР°Р»РёС‚СЂР°', accelerator: 'CommandOrControl+K', click: () => mainWindow && mainWindow.webContents.send('action:toggle-palette') },
+        { label: 'РђРґСЂРµСЃРЅР°СЏ СЃС‚СЂРѕРєР°', accelerator: 'CommandOrControl+L', click: () => mainWindow && mainWindow.webContents.send('action:focus-omnibox') },
         { type: 'separator' },
-        { label: 'Инструменты разработчика', accelerator: 'F12', click: toggleDevTools },
-        { label: 'Расширения', accelerator: 'CommandOrControl+Shift+E', click: () => {
+        { label: 'РРЅСЃС‚СЂСѓРјРµРЅС‚С‹ СЂР°Р·СЂР°Р±РѕС‚С‡РёРєР°', accelerator: 'F12', click: toggleDevTools },
+        { label: 'Р Р°СЃС€РёСЂРµРЅРёСЏ', accelerator: 'CommandOrControl+Shift+E', click: () => {
           if (!activeTabId) return;
           const t = tabs.find(x => x.id === activeTabId);
           if (t && t.view) t.view.webContents.loadURL(resolvePageUrl('about:extensions'));
