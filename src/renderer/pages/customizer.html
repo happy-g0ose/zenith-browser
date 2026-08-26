@@ -127,6 +127,17 @@
     .preset-btn.active { border-color: var(--accent); background: var(--accent-muted); }
     .preset-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); flex-shrink: 0; }
 
+    /* Layout editor */
+    .layout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .layout-sliders { display: flex; flex-direction: column; gap: 9px; }
+    .slider-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text); }
+    .slider-row span { width: 130px; flex-shrink: 0; color: var(--text-muted); }
+    .slider-row b { width: 30px; text-align: right; color: var(--accent); font-size: 11.5px; }
+    .slider-row input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+    .hide-list { display: flex; flex-direction: column; gap: 7px; }
+    .hide-row { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text); cursor: pointer; }
+    .hide-row input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
     .hint { color: var(--text-muted); font-size: 11.5px; line-height: 1.55; }
     .actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .save-status {
@@ -233,6 +244,48 @@
           <button class="btn btn-secondary" id="btn-reset-part" disabled>Сбросить цвет части</button>
           <button class="btn btn-danger" id="btn-reset-all">Сбросить всё</button>
           <span class="save-status" id="save-status"></span>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom:10px">Макет и детали</h3>
+          <div class="layout-grid">
+            <div class="layout-sliders">
+              <label class="slider-row">
+                <span>Высота таббара</span>
+                <input type="range" id="sz-tabstrip" min="26" max="56" step="1">
+                <b id="sz-tabstrip-v">38</b>
+              </label>
+              <label class="slider-row">
+                <span>Высота панели</span>
+                <input type="range" id="sz-navbar" min="30" max="64" step="1">
+                <b id="sz-navbar-v">40</b>
+              </label>
+              <label class="slider-row">
+                <span>Высота закладок</span>
+                <input type="range" id="sz-bookmarks" min="22" max="48" step="1">
+                <b id="sz-bookmarks-v">28</b>
+              </label>
+              <label class="slider-row">
+                <span>Размер шрифта</span>
+                <input type="range" id="sz-font" min="11" max="17" step="1">
+                <b id="sz-font-v">13</b>
+              </label>
+              <label class="slider-row">
+                <span>Скругления</span>
+                <input type="range" id="sz-radius" min="0" max="16" step="1">
+                <b id="sz-radius-v">6</b>
+              </label>
+            </div>
+            <div class="hide-list">
+              <label class="hide-row"><input type="checkbox" id="hd-navbar"><span>Панель адресной строки</span></label>
+              <label class="hide-row"><input type="checkbox" id="hd-bookmarks"><span>Панель закладок</span></label>
+              <label class="hide-row"><input type="checkbox" id="hd-downloads"><span>Кнопка загрузок</span></label>
+              <label class="hide-row"><input type="checkbox" id="hd-ext"><span>Кнопка расширений</span></label>
+              <label class="hide-row"><input type="checkbox" id="hd-incognito"><span>Кнопка инкогнито</span></label>
+              <label class="hide-row"><input type="checkbox" id="hd-shield"><span>Кнопка щита</span></label>
+            </div>
+          </div>
+          <p class="hint" style="margin-top:10px">Слайдеры меняют размеры вживую, галочки скрывают детали. Вид web-страницы подстраивается автоматически.</p>
         </div>
 
         <div>

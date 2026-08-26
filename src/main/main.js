@@ -499,10 +499,20 @@ function updateViewBounds() {
   if (!currentTab || !currentTab.view) return;
 
   const [winWidth, winHeight] = mainWindow.getSize();
-  const tabstripHeight = 38;
-  const navHeight = 40;
-  const bookmarksHeight = 28;
-  const topOffset = tabstripHeight + navHeight + bookmarksHeight;
+  // Layout metrics follow the customizer (ui.custom.layout), clamped
+  const layout = configStore.getPref('ui.custom.layout', null) || {};
+  const hide = layout.hide || {};
+  const sizes = layout.sizes || {};
+  const clamp = (v, min, max, def) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def;
+  };
+  const tabstripHeight = clamp(sizes.tabstrip, 26, 56, 38);
+  const navHeight = clamp(sizes.navbar, 30, 64, 40);
+  const bookmarksHeight = clamp(sizes.bookmarks, 22, 48, 28);
+  const topOffset = tabstripHeight
+    + (hide.navbar ? 0 : navHeight)
+    + (hide.bookmarks ? 0 : bookmarksHeight);
 
   const isVertical = configStore.getPref('ui.tabs.position', 'top') === 'left';
   const sidebarWidth = isVertical ? 220 : 0;
@@ -632,6 +642,10 @@ function setupIPCHandlers() {
     if (key === 'ui.sites_theme') {
       const mode = ['system', 'dark', 'light'].includes(val) ? val : 'system';
       nativeTheme.themeSource = mode;
+    }
+    if (key === 'ui.custom.layout') {
+      mainWindow.webContents.send('custom:layout', val);
+      updateViewBounds();
     }
   });
   ipcMain.handle('prefs:reset', (_e, key) => configStore.resetPref(key));

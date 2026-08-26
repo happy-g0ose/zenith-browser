@@ -104,6 +104,7 @@ if (isInternalPage) {
     onPageDarken: (callback) => ipcRenderer.on('overlay:page-darken', (_e, dataUrl) => callback(dataUrl)),
     onThemeChanged: (callback) => ipcRenderer.on('theme:changed', (_e, theme) => callback(theme)),
     onEngineChanged: (callback) => ipcRenderer.on('engine:changed', (_e, engine) => callback(engine)),
-    onCustomChanged: (callback) => ipcRenderer.on('custom:changed', (_e, overrides) => callback(overrides))
+    onCustomChanged: (callback) => ipcRenderer.on('custom:changed', (_e, overrides) => callback(overrides)),
+    onLayoutChanged: (callback) => ipcRenderer.on('custom:layout', (_e, layout) => callback(layout))
   });
 }

@@ -78,6 +78,99 @@ let overrides = {};
 let selectedVar = null;
 let currentTheme = 'stealth-dark';
 let saveTimer = null;
+let layout = { hide: {}, sizes: {} };
+let layoutTimer = null;
+
+const LAYOUT_DEFAULTS = { tabstrip: 38, navbar: 40, bookmarks: 28, font: 13, radius: 6 };
+
+function clampVal(v, min, max, def) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def;
+}
+
+function applyLayoutToMini() {
+  const mini = document.getElementById('mini');
+  if (!mini) return;
+  const s = layout.sizes || {};
+  const h = layout.hide || {};
+  const tabstrip = mini.querySelector('.m-tabstrip');
+  const navbar = mini.querySelector('.m-navbar');
+  const bookmarks = mini.querySelector('.m-bookmarks');
+  const omnibox = mini.querySelector('.m-omnibox');
+  if (tabstrip) tabstrip.style.height = clampVal(s.tabstrip, 26, 56, 38) + 'px';
+  if (navbar) {
+    navbar.style.display = h.navbar ? 'none' : 'flex';
+    navbar.style.height = clampVal(s.navbar, 30, 64, 40) + 'px';
+  }
+  if (bookmarks) bookmarks.style.display = h.bookmarks ? 'none' : 'flex';
+  if (omnibox) omnibox.style.borderRadius = clampVal(s.radius, 0, 16, 6) + 'px';
+  if (h.downloads || h.ext || h.incognito || h.shield) {
+    const dots = mini.querySelector('.m-navbtn:last-of-type');
+    if (dots && (h.downloads || h.ext)) dots.style.display = 'none';
+  }
+}
+
+function saveLayoutNow() {
+  clearTimeout(layoutTimer);
+  if (window.aegisAPI) {
+    window.aegisAPI.setPref('ui.custom.layout', layout).then(showSaved);
+  }
+}
+
+function scheduleLayoutSave() {
+  clearTimeout(layoutTimer);
+  layoutTimer = setTimeout(saveLayoutNow, 500);
+}
+
+function setupLayoutEditor() {
+  const sliders = [
+    ['sz-tabstrip', 'tabstrip', 26, 56, 38],
+    ['sz-navbar', 'navbar', 30, 64, 40],
+    ['sz-bookmarks', 'bookmarks', 22, 48, 28],
+    ['sz-font', 'font', 11, 17, 13],
+    ['sz-radius', 'radius', 0, 16, 6]
+  ];
+  sliders.forEach(([id, key, min, max, def]) => {
+    const input = $(id);
+    const label = $(id + '-v');
+    if (!input) return;
+    input.value = clampVal(layout.sizes[key], min, max, def);
+    label.textContent = input.value;
+    input.addEventListener('input', () => {
+      layout.sizes = { ...layout.sizes, [key]: Number(input.value) };
+      label.textContent = input.value;
+      applyLayoutToMini();
+      scheduleLayoutSave();
+    });
+  });
+
+  const toggles = [
+    ['hd-navbar', 'navbar'], ['hd-bookmarks', 'bookmarks'], ['hd-downloads', 'downloads'],
+    ['hd-ext', 'ext'], ['hd-incognito', 'incognito'], ['hd-shield', 'shield']
+  ];
+  toggles.forEach(([id, key]) => {
+    const cb = $(id);
+    if (!cb) return;
+    cb.checked = !!(layout.hide && layout.hide[key]);
+    cb.addEventListener('change', () => {
+      layout.hide = { ...layout.hide, [key]: cb.checked };
+      applyLayoutToMini();
+      scheduleLayoutSave();
+    });
+  });
+}
+
+async function initLayoutEditor() {
+  if (!window.aegisAPI) return;
+  try {
+    const saved = await window.aegisAPI.getPref('ui.custom.layout');
+    if (saved && typeof saved === 'object') {
+      layout = { hide: saved.hide || {}, sizes: saved.sizes || {} };
+    }
+  } catch (e) {}
+  setupLayoutEditor();
+  applyLayoutToMini();
+}
 
 function normalizeHex(val) {
   val = (val || '').trim();
@@ -336,6 +429,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupTopTabs();
   setupVisualStudio();
   await initVisualStudio();
+  await initLayoutEditor();
   await loadFiles();
   $('tab-userchrome').onclick = () => switchEditor('userchrome');
   $('tab-usercontent').onclick = () => switchEditor('usercontent');

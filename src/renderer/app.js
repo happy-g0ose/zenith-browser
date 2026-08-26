@@ -67,6 +67,9 @@ async function init() {
     if (typeof window.aegisAPI.onCustomChanged === 'function') {
       window.aegisAPI.onCustomChanged(overrides => applyCustomOverrides(overrides));
     }
+    if (typeof window.aegisAPI.onLayoutChanged === 'function') {
+      window.aegisAPI.onLayoutChanged(layout => applyCustomLayout(layout));
+    }
     if (typeof window.aegisAPI.onBookmarksChanged === 'function') {
       window.aegisAPI.onBookmarksChanged(() => loadBookmarks());
     }
@@ -102,6 +105,10 @@ async function applyUiPrefs() {
   try {
     const overrides = await window.aegisAPI.getPref('ui.custom.overrides');
     applyCustomOverrides(overrides);
+  } catch (e) {}
+  try {
+    const layout = await window.aegisAPI.getPref('ui.custom.layout');
+    applyCustomLayout(layout);
   } catch (e) {}
 }
 
@@ -183,6 +190,28 @@ function applyEngineUI(engineKey) {
 }
 
 const appliedCustomVars = new Set();
+
+// ---- Layout editor (sizes + hidden parts) ----
+function applyCustomLayout(layout) {
+  const l = layout && typeof layout === 'object' ? layout : {};
+  const hide = l.hide || {};
+  const sizes = l.sizes || {};
+  const clamp = (v, min, max, def) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def;
+  };
+  document.body.style.setProperty('--tabstrip-h', clamp(sizes.tabstrip, 26, 56, 38) + 'px');
+  document.body.style.setProperty('--navbar-h', clamp(sizes.navbar, 30, 64, 40) + 'px');
+  document.body.style.setProperty('--bookmarks-h', clamp(sizes.bookmarks, 22, 48, 28) + 'px');
+  document.body.style.setProperty('--ui-font-size', clamp(sizes.font, 11, 17, 13) + 'px');
+  document.body.style.setProperty('--ui-radius', clamp(sizes.radius, 0, 16, 6) + 'px');
+  document.body.classList.toggle('hide-navbar', !!hide.navbar);
+  document.body.classList.toggle('hide-bookmarks', !!hide.bookmarks);
+  document.body.classList.toggle('hide-downloads', !!hide.downloads);
+  document.body.classList.toggle('hide-ext', !!hide.ext);
+  document.body.classList.toggle('hide-incognito', !!hide.incognito);
+  document.body.classList.toggle('hide-shield', !!hide.shield);
+}
 
 function applyCustomOverrides(overrides) {
   const next = new Set();
