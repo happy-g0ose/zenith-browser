@@ -131,6 +131,142 @@ async function renderShield() {
   $('p-audit').onclick = () => go('about:fingerprint');
 }
 
+// ---- Quick search engine picker ----
+const ENGINE_LIST = [
+  ['duckduckgo', 'DuckDuckGo'],
+  ['brave', 'Brave Search'],
+  ['google', 'Google'],
+  ['searx', 'SearXNG']
+];
+
+function engineDot(key) {
+  const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || { color: '#888', path: '' };
+  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="${icon.color}" style="flex-shrink:0"><path d="${icon.path}"/></svg>`;
+}
+
+async function renderEngine() {
+  let current = 'duckduckgo';
+  try { current = (await window.aegisAPI.getPref('ui.search.default_engine')) || current; } catch (e) {}
+
+  panel.innerHTML = `
+    <div class="popup-header">
+      <span class="popup-title">Поисковик по умолчанию</span>
+    </div>
+    <div class="menu-items-list" style="margin-top:2px">
+      ${ENGINE_LIST.map(([key, name]) => `
+        <button class="menu-item" data-engine="${key}">
+          ${engineDot(key)}
+          <span style="${key === current ? 'color:var(--accent);font-weight:600' : ''}">${esc(name)}</span>
+          ${key === current ? '<span class="menu-shortcut" style="color:var(--accent)">●</span>' : ''}
+        </button>`).join('')}
+    </div>`;
+
+  panel.querySelectorAll('[data-engine]').forEach(btn => {
+    btn.onclick = async () => {
+      if (!window.aegisAPI) return;
+      await window.aegisAPI.setPref('ui.search.default_engine', btn.dataset.engine);
+      closeMe();
+    };
+  });
+}
+
+// ---- Command palette ----
+const PALETTE_COMMANDS = [
+  { title: 'Новая вкладка',                 key: 'Ctrl+T',        kw: 'вкладка tab new',              run: () => window.aegisAPI.createNewTab('about:newtab') },
+  { title: 'Новая инкогнито-вкладка',       key: 'Ctrl+Shift+N',  kw: 'вкладка приватная incognito',  run: () => window.aegisAPI.createIncognitoTab('about:newtab') },
+  { title: 'Настройки и конфигурация',      key: 'Internal',      kw: 'настройки config settings preferences параметры', run: () => go('about:config') },
+  { title: 'Аудит фингерпринта',            key: 'Internal',      kw: 'фингерпринт fingerprint отпечаток антидетект', run: () => go('about:fingerprint') },
+  { title: 'Профили личности',              key: 'Internal',      kw: 'профили личности identity антидетект', run: () => go('about:profiles') },
+  { title: 'Студия кастомизации',           key: 'Internal',      kw: 'кастомизация css userchrome тема цвет оформление', run: () => go('about:customizer') },
+  { title: 'Магазин расширений',            key: 'Internal',      kw: 'расширения extensions plugins', run: () => go('about:extensions') },
+  { title: 'Сгенерировать случайную личность', key: 'Stealth',    kw: 'личность fingerprint сгенерировать рандом', run: async () => {
+      const p = await window.aegisAPI.generateRandomFingerprint();
+      await window.aegisAPI.saveProfile(p);
+      await window.aegisAPI.setActiveProfile(p.id);
+    } },
+  { title: 'Переключить вертикальные вкладки', key: 'Layout',     kw: 'вкладки вертикальные боковые layout', run: async () => {
+      const pos = await window.aegisAPI.getPref('ui.tabs.position', 'top');
+      await window.aegisAPI.setPref('ui.tabs.position', pos === 'left' ? 'top' : 'left');
+      await window.aegisAPI.reloadUIStyles();
+    } },
+  { title: 'Показать/скрыть панель закладок', key: 'Layout',     kw: 'закладки панель bookmarks бар скрыть', run: async () => {
+      const l = (await window.aegisAPI.getPref('ui.custom.layout')) || {};
+      l.hide = l.hide || {};
+      l.hide.bookmarks = !l.hide.bookmarks;
+      await window.aegisAPI.setPref('ui.custom.layout', l);
+    } },
+  { title: 'Тёмные сайты: вкл/выкл',        key: 'Theme',         kw: 'тёмный темный dark сайты тема night', run: async () => {
+      const cur = await window.aegisAPI.getPref('ui.sites_theme', 'system');
+      await window.aegisAPI.setPref('ui.sites_theme', cur === 'dark' ? 'system' : 'dark');
+    } },
+  { title: 'Force Dark: вкл/выкл (перезапуск)', key: 'Theme',     kw: 'force dark принудительный тёмный google затемнение', run: async () => {
+      const cur = await window.aegisAPI.getPref('ui.force_dark', false);
+      await window.aegisAPI.setPref('ui.force_dark', !cur);
+    } },
+  { title: 'Импортировать куки из Opera',   key: 'Migration',     kw: 'куки cookies opera импорт миграция логин сессии', run: () => window.aegisAPI.importOperaCookies() },
+  { title: 'Сбросить счётчик блокировок',   key: 'Privacy',       kw: 'сброс блокировки счётчик щит privacy', run: () => window.aegisAPI.resetShieldStats() },
+  { title: 'Очистить историю',              key: 'Privacy',       kw: 'история очистить удалить history', run: () => window.aegisAPI.clearHistory() },
+  { title: 'Тема: Stealth Dark',            key: 'Theme',         kw: 'тема stealth dark',            run: () => window.aegisAPI.setPref('ui.theme', 'stealth-dark') },
+  { title: 'Тема: OLED Black',              key: 'Theme',         kw: 'тема oled black чёрный',       run: () => window.aegisAPI.setPref('ui.theme', 'oled-black') },
+  { title: 'Тема: Nord',                    key: 'Theme',         kw: 'тема nord',                    run: () => window.aegisAPI.setPref('ui.theme', 'nord') },
+  { title: 'Тема: Tokyo Night',             key: 'Theme',         kw: 'тема tokyo night',             run: () => window.aegisAPI.setPref('ui.theme', 'tokyo-night') },
+  { title: 'Тема: Gruvbox',                 key: 'Theme',         kw: 'тема gruvbox',                 run: () => window.aegisAPI.setPref('ui.theme', 'gruvbox') },
+  { title: 'Тема: Paper Light',             key: 'Theme',         kw: 'тема paper light светлая',     run: () => window.aegisAPI.setPref('ui.theme', 'paper-light') }
+];
+
+async function renderPalette() {
+  panel.innerHTML = `
+    <div class="palette-input-wrapper">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" class="palette-input" id="pal-input" placeholder="Введите команду..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="palette-results" id="pal-results"></div>`;
+  const input = $('pal-input');
+  const results = $('pal-results');
+  let filtered = PALETTE_COMMANDS;
+  let selected = 0;
+
+  const render = () => {
+    if (!filtered.length) {
+      results.innerHTML = '<div class="palette-empty">Ничего не найдено.<br>Попробуй: «тема», «вкладка», «настройки»</div>';
+      return;
+    }
+    results.innerHTML = filtered.map((c, i) => `
+      <button class="palette-item ${i === selected ? 'selected' : ''}" data-i="${i}">
+        <span>${esc(c.title)}</span><span class="p-key">${esc(c.key)}</span>
+      </button>`).join('');
+  };
+
+  const applyFilter = () => {
+    const q = input.value.trim().toLowerCase();
+    filtered = !q ? PALETTE_COMMANDS : PALETTE_COMMANDS.filter(c =>
+      c.title.toLowerCase().includes(q) || (c.kw || '').toLowerCase().includes(q) || c.key.toLowerCase().includes(q)
+    );
+    selected = 0;
+    render();
+  };
+
+  const exec = (cmd) => {
+    closeMe();
+    try { Promise.resolve(cmd.run()).catch(() => {}); } catch (e) {}
+  };
+
+  input.addEventListener('input', applyFilter);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); render(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); render(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[selected]) exec(filtered[selected]); }
+    else if (e.key === 'Escape') { closeMe(); }
+  });
+  results.addEventListener('click', (e) => {
+    const btn = e.target.closest('.palette-item');
+    if (btn && filtered[btn.dataset.i]) exec(filtered[btn.dataset.i]);
+  });
+
+  render();
+  setTimeout(() => input.focus(), 40);
+}
+
 if (window.aegisAPI) {
   if (type === 'shield') renderShield();
   else if (type === 'palette') renderPalette();
@@ -337,140 +473,4 @@ async function renderExtList() {
   if (manage) {
     manage.onclick = () => go('about:extensions');
   }
-}
-
-// ---- Quick search engine picker ----
-const ENGINE_LIST = [
-  ['duckduckgo', 'DuckDuckGo'],
-  ['brave', 'Brave Search'],
-  ['google', 'Google'],
-  ['searx', 'SearXNG']
-];
-
-function engineDot(key) {
-  const icon = (window.ENGINE_ICONS && window.ENGINE_ICONS[key]) || { color: '#888', path: '' };
-  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="${icon.color}" style="flex-shrink:0"><path d="${icon.path}"/></svg>`;
-}
-
-async function renderEngine() {
-  let current = 'duckduckgo';
-  try { current = (await window.aegisAPI.getPref('ui.search.default_engine')) || current; } catch (e) {}
-
-  panel.innerHTML = `
-    <div class="popup-header">
-      <span class="popup-title">Поисковик по умолчанию</span>
-    </div>
-    <div class="menu-items-list" style="margin-top:2px">
-      ${ENGINE_LIST.map(([key, name]) => `
-        <button class="menu-item" data-engine="${key}">
-          ${engineDot(key)}
-          <span style="${key === current ? 'color:var(--accent);font-weight:600' : ''}">${esc(name)}</span>
-          ${key === current ? '<span class="menu-shortcut" style="color:var(--accent)">●</span>' : ''}
-        </button>`).join('')}
-    </div>`;
-
-  panel.querySelectorAll('[data-engine]').forEach(btn => {
-    btn.onclick = async () => {
-      if (!window.aegisAPI) return;
-      await window.aegisAPI.setPref('ui.search.default_engine', btn.dataset.engine);
-      closeMe();
-    };
-  });
-}
-
-// ---- Command palette ----
-const PALETTE_COMMANDS = [
-  { title: 'Новая вкладка',                 key: 'Ctrl+T',        kw: 'вкладка tab new',              run: () => window.aegisAPI.createNewTab('about:newtab') },
-  { title: 'Новая инкогнито-вкладка',       key: 'Ctrl+Shift+N',  kw: 'вкладка приватная incognito',  run: () => window.aegisAPI.createIncognitoTab('about:newtab') },
-  { title: 'Настройки и конфигурация',      key: 'Internal',      kw: 'настройки config settings preferences параметры', run: () => go('about:config') },
-  { title: 'Аудит фингерпринта',            key: 'Internal',      kw: 'фингерпринт fingerprint отпечаток антидетект', run: () => go('about:fingerprint') },
-  { title: 'Профили личности',              key: 'Internal',      kw: 'профили личности identity антидетект', run: () => go('about:profiles') },
-  { title: 'Студия кастомизации',           key: 'Internal',      kw: 'кастомизация css userchrome тема цвет оформление', run: () => go('about:customizer') },
-  { title: 'Магазин расширений',            key: 'Internal',      kw: 'расширения extensions plugins', run: () => go('about:extensions') },
-  { title: 'Сгенерировать случайную личность', key: 'Stealth',    kw: 'личность fingerprint сгенерировать рандом', run: async () => {
-      const p = await window.aegisAPI.generateRandomFingerprint();
-      await window.aegisAPI.saveProfile(p);
-      await window.aegisAPI.setActiveProfile(p.id);
-    } },
-  { title: 'Переключить вертикальные вкладки', key: 'Layout',     kw: 'вкладки вертикальные боковые layout', run: async () => {
-      const pos = await window.aegisAPI.getPref('ui.tabs.position', 'top');
-      await window.aegisAPI.setPref('ui.tabs.position', pos === 'left' ? 'top' : 'left');
-      await window.aegisAPI.reloadUIStyles();
-    } },
-  { title: 'Показать/скрыть панель закладок', key: 'Layout',     kw: 'закладки панель bookmarks бар скрыть', run: async () => {
-      const l = (await window.aegisAPI.getPref('ui.custom.layout')) || {};
-      l.hide = l.hide || {};
-      l.hide.bookmarks = !l.hide.bookmarks;
-      await window.aegisAPI.setPref('ui.custom.layout', l);
-    } },
-  { title: 'Тёмные сайты: вкл/выкл',        key: 'Theme',         kw: 'тёмный темный dark сайты тема night', run: async () => {
-      const cur = await window.aegisAPI.getPref('ui.sites_theme', 'system');
-      await window.aegisAPI.setPref('ui.sites_theme', cur === 'dark' ? 'system' : 'dark');
-    } },
-  { title: 'Force Dark: вкл/выкл (перезапуск)', key: 'Theme',     kw: 'force dark принудительный тёмный google затемнение', run: async () => {
-      const cur = await window.aegisAPI.getPref('ui.force_dark', false);
-      await window.aegisAPI.setPref('ui.force_dark', !cur);
-    } },
-  { title: 'Импортировать куки из Opera',   key: 'Migration',     kw: 'куки cookies opera импорт миграция логин сессии', run: () => window.aegisAPI.importOperaCookies() },
-  { title: 'Сбросить счётчик блокировок',   key: 'Privacy',       kw: 'сброс блокировки счётчик щит privacy', run: () => window.aegisAPI.resetShieldStats() },
-  { title: 'Очистить историю',              key: 'Privacy',       kw: 'история очистить удалить history', run: () => window.aegisAPI.clearHistory() },
-  { title: 'Тема: Stealth Dark',            key: 'Theme',         kw: 'тема stealth dark',            run: () => window.aegisAPI.setPref('ui.theme', 'stealth-dark') },
-  { title: 'Тема: OLED Black',              key: 'Theme',         kw: 'тема oled black чёрный',       run: () => window.aegisAPI.setPref('ui.theme', 'oled-black') },
-  { title: 'Тема: Nord',                    key: 'Theme',         kw: 'тема nord',                    run: () => window.aegisAPI.setPref('ui.theme', 'nord') },
-  { title: 'Тема: Tokyo Night',             key: 'Theme',         kw: 'тема tokyo night',             run: () => window.aegisAPI.setPref('ui.theme', 'tokyo-night') },
-  { title: 'Тема: Gruvbox',                 key: 'Theme',         kw: 'тема gruvbox',                 run: () => window.aegisAPI.setPref('ui.theme', 'gruvbox') },
-  { title: 'Тема: Paper Light',             key: 'Theme',         kw: 'тема paper light светлая',     run: () => window.aegisAPI.setPref('ui.theme', 'paper-light') }
-];
-
-async function renderPalette() {
-  panel.innerHTML = `
-    <div class="palette-input-wrapper">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" class="palette-input" id="pal-input" placeholder="Введите команду..." autocomplete="off" spellcheck="false">
-    </div>
-    <div class="palette-results" id="pal-results"></div>`;
-  const input = $('pal-input');
-  const results = $('pal-results');
-  let filtered = PALETTE_COMMANDS;
-  let selected = 0;
-
-  const render = () => {
-    if (!filtered.length) {
-      results.innerHTML = '<div class="palette-empty">Ничего не найдено.<br>Попробуй: «тема», «вкладка», «настройки»</div>';
-      return;
-    }
-    results.innerHTML = filtered.map((c, i) => `
-      <button class="palette-item ${i === selected ? 'selected' : ''}" data-i="${i}">
-        <span>${esc(c.title)}</span><span class="p-key">${esc(c.key)}</span>
-      </button>`).join('');
-  };
-
-  const applyFilter = () => {
-    const q = input.value.trim().toLowerCase();
-    filtered = !q ? PALETTE_COMMANDS : PALETTE_COMMANDS.filter(c =>
-      c.title.toLowerCase().includes(q) || (c.kw || '').toLowerCase().includes(q) || c.key.toLowerCase().includes(q)
-    );
-    selected = 0;
-    render();
-  };
-
-  const exec = (cmd) => {
-    closeMe();
-    try { Promise.resolve(cmd.run()).catch(() => {}); } catch (e) {}
-  };
-
-  input.addEventListener('input', applyFilter);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); selected = Math.min(selected + 1, filtered.length - 1); render(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); selected = Math.max(selected - 1, 0); render(); }
-    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[selected]) exec(filtered[selected]); }
-    else if (e.key === 'Escape') { closeMe(); }
-  });
-  results.addEventListener('click', (e) => {
-    const btn = e.target.closest('.palette-item');
-    if (btn && filtered[btn.dataset.i]) exec(filtered[btn.dataset.i]);
-  });
-
-  render();
-  setTimeout(() => input.focus(), 40);
 }
