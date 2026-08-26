@@ -66,6 +66,7 @@ class ConfigStore {
       'ui.animations.enabled': true,
       'ui.sites_theme': 'system', // 'system' | 'dark' | 'light' - prefers-color-scheme для сайтов
       'ui.force_dark': false, // Chromium Force Dark: авто-затемнение любых сайтов (нужен перезапуск)
+      'ui.newtab.wallpaper': '', // '' | 'preset:<name>' | 'file:///<path>'
       'ui.custom.overrides': {}, // { '--bg-tabstrip': '#0a0c10', ... } - smart customizer
 
       // Network & DNS
