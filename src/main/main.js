@@ -624,10 +624,15 @@ function setupIPCHandlers() {
       return false;
     }
   };
-  ipcMain.handle = (channel, listener) => rawHandle(channel, (event, ...args) => {
-    if (!isTrustedSender(event)) throw new Error(`Unauthorized IPC call to ${channel}`);
-    return listener(event, ...args);
-  });
+  ipcMain.handle = (channel, listener) => {
+    // A duplicate registration used to throw and abort the whole handler
+    // setup (browser started half-dead). Last registration wins instead.
+    try { ipcMain.removeHandler(channel); } catch (e) {}
+    return rawHandle(channel, (event, ...args) => {
+      if (!isTrustedSender(event)) throw new Error(`Unauthorized IPC call to ${channel}`);
+      return listener(event, ...args);
+    });
+  };
   ipcMain.on = (channel, listener) => rawOn(channel, (event, ...args) => {
     if (!isTrustedSender(event)) return;
     listener(event, ...args);
@@ -849,13 +854,6 @@ function setupIPCHandlers() {
     configStore.setPref(key, String(value));
     broadcastAll('wallpaper:changed', { target: target === 'topbar' ? 'topbar' : 'newtab', value: String(value) });
   });
-  // Favicons (fetched via the requesting tab's session; no tabId = active tab)
-  ipcMain.handle('favicon:get', (_e, { url, tabId }) => {
-    const t = tabId ? tabs.find(x => x.id === tabId) : tabs.find(x => x.id === activeTabId);
-    const wc = t && t.view ? t.view.webContents : null;
-    return fetchFavicon(url, wc);
-  });
-
   // Favicons (fetched via the requesting tab's session; no tabId = active tab)
   ipcMain.handle('favicon:get', (_e, { url, tabId }) => {
     const t = tabId ? tabs.find(x => x.id === tabId) : tabs.find(x => x.id === activeTabId);
